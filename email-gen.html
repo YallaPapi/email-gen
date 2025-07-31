@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bare Bones Email Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google API Scripts -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .spinner {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg p-8 space-y-6">
+        
+        <!-- Header -->
+        <div class="text-center">
+            <h1 class="text-3xl font-bold text-gray-900">Bare Bones Email Generator</h1>
+            <p class="text-gray-500 mt-2">Upload a spreadsheet, get back customized cold emails.</p>
+        </div>
+
+        <!-- Step 1: API Key -->
+        <div id="step1">
+            <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">OpenAI API Key</label>
+            <input type="password" id="apiKey" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" value="" placeholder="Enter your OpenAI API key">
+            <p class="text-xs text-gray-500 mt-1">Your key is used directly in your browser and is not stored.</p>
+        </div>
+
+        <!-- Step 2: File Upload -->
+        <div id="step2">
+            <label for="spreadsheetFile" class="block text-sm font-medium text-gray-700 mb-1">Upload Spreadsheet (.csv, .xlsx, .xls)</label>
+            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                <div class="space-y-1 text-center">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <div class="flex text-sm text-gray-600">
+                        <label for="spreadsheetFile" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                            <span>Upload a file</span>
+                            <input id="spreadsheetFile" name="spreadsheetFile" type="file" class="sr-only" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                        </label>
+                        <p class="pl-1">or drag and drop</p>
+                    </div>
+                    <p id="fileName" class="text-xs text-gray-500">No file selected</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Generate Button -->
+        <button id="generateBtn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-300">
+            Generate Emails
+        </button>
+
+        <!-- Progress & Status -->
+        <div id="progressArea" class="hidden text-center p-4 bg-gray-100 rounded-lg">
+            <div class="flex items-center justify-center space-x-3">
+                <div class="spinner w-6 h-6 rounded-full border-4 border-gray-300"></div>
+                <p id="statusText" class="text-gray-700 font-medium">Processing...</p>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+                <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Results & Download -->
+        <div id="resultsArea" class="hidden text-center p-6 border border-green-300 bg-green-50 rounded-lg">
+            <h2 class="text-xl font-semibold text-green-800">Success!</h2>
+            <p id="successMessage" class="text-green-700 mt-1">Generated emails for all rows.</p>
+            <div class="mt-4 flex justify-center gap-4">
+                <button id="downloadBtn" class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    Download (.xlsx)
+                </button>
+                <button id="exportToSheetsBtn" class="bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                    Export to Sheets
+                </button>
+            </div>
+        </div>
+        
+        <!-- Google Sheets Export Result -->
+        <div id="sheetsResultArea" class="hidden text-center p-4 bg-blue-50 border border-blue-300 rounded-lg">
+            <p id="sheetsResultMessage" class="text-blue-800"></p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="errorArea" class="hidden text-center p-4 border border-red-300 bg-red-50 rounded-lg">
+             <h2 class="text-xl font-semibold text-red-800">Error</h2>
+            <p id="errorMessage" class="text-red-700 mt-1"></p>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DOM Element References ---
+        const apiKeyInput = document.getElementById('apiKey');
+        const fileInput = document.getElementById('spreadsheetFile');
+        const fileNameDisplay = document.getElementById('fileName');
+        const generateBtn = document.getElementById('generateBtn');
+        const progressArea = document.getElementById('progressArea');
+        const statusText = document.getElementById('statusText');
+        const progressBar = document.getElementById('progressBar');
+        const resultsArea = document.getElementById('resultsArea');
+        const successMessage = document.getElementById('successMessage');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const exportToSheetsBtn = document.getElementById('exportToSheetsBtn');
+        const sheetsResultArea = document.getElementById('sheetsResultArea');
+        const sheetsResultMessage = document.getElementById('sheetsResultMessage');
+        const errorArea = document.getElementById('errorArea');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let spreadsheetData = [];
+        let processedDataForExport = [];
+        let newWorkbook = null;
+
+        // --- Google API Configuration ---
+        const GOOGLE_API_KEY = ''; // Add your Google Cloud API Key here
+        const GOOGLE_CLIENT_ID = ''; // Add your Google Cloud OAuth 2.0 Client ID here
+        const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+
+        // --- Initial State ---
+        generateBtn.disabled = true;
+
+        // --- Event Listeners ---
+        fileInput.addEventListener('change', handleFileSelect);
+        apiKeyInput.addEventListener('input', checkFormValidity);
+        generateBtn.addEventListener('click', processSpreadsheet);
+        downloadBtn.addEventListener('click', downloadResults);
+        exportToSheetsBtn.addEventListener('click', handleExportToSheetsClick);
+
+        // --- Functions ---
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileNameDisplay.textContent = file.name;
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    spreadsheetData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    if(spreadsheetData.length === 0) {
+                        showError("The spreadsheet is empty or could not be read.");
+                        return;
+                    }
+
+                    checkFormValidity();
+                } catch (err) {
+                    showError(`Error reading spreadsheet: ${err.message}`);
+                    spreadsheetData = [];
+                    checkFormValidity();
+                }
+            };
+            
+            reader.onerror = () => {
+                 showError("Failed to read the file.");
+                 spreadsheetData = [];
+                 checkFormValidity();
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function checkFormValidity() {
+            const allValid = apiKeyInput.value.trim() && spreadsheetData.length > 0;
+            generateBtn.disabled = !allValid;
+        }
+
+        function resetUI() {
+            progressArea.classList.add('hidden');
+            resultsArea.classList.add('hidden');
+            errorArea.classList.add('hidden');
+            sheetsResultArea.classList.add('hidden');
+            progressBar.style.width = '0%';
+            statusText.textContent = 'Processing...';
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Emails';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorArea.classList.remove('hidden');
+            progressArea.classList.add('hidden');
+            sheetsResultArea.classList.add('hidden');
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Emails';
+        }
+        
+        async function processSpreadsheet() {
+            resetUI();
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            progressArea.classList.remove('hidden');
+
+            const totalRows = spreadsheetData.length;
+            processedDataForExport = [];
+
+            for (let i = 0; i < totalRows; i++) {
+                const row = spreadsheetData[i];
+                statusText.textContent = `Processing row ${i + 1} of ${totalRows}...`;
+                
+                try {
+                    const email = await generateEmailForRow(row);
+                    const newRow = { ...row, generated_email: email };
+                    processedDataForExport.push(newRow);
+                } catch (error) {
+                    showError(`Failed on row ${i + 1}: ${error.message}. Please check your API key and network.`);
+                    return;
+                }
+
+                progressBar.style.width = `${((i + 1) / totalRows) * 100}%`;
+                await new Promise(resolve => setTimeout(resolve, 200)); 
+            }
+
+            const newWorksheet = XLSX.utils.json_to_sheet(processedDataForExport);
+            newWorkbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(newWorkbook, newWorksheet, 'Generated Emails');
+
+            progressArea.classList.add('hidden');
+            successMessage.textContent = `Successfully generated emails for ${totalRows} rows.`;
+            resultsArea.classList.remove('hidden');
+            generateBtn.textContent = 'Generate Emails';
+        }
+
+        async function generateEmailForRow(rowData) {
+            const apiKey = apiKeyInput.value.trim();
+            const apiUrl = 'https://api.openai.com/v1/chat/completions';
+
+            const prospect_info = Object.entries(rowData)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join('\n');
+            
+            // This is the instruction text from your original prompt.
+            const instruction_text = "Reference their specific situation when possible";
+
+            // --- REVISED PROMPT USING YOUR ORIGINAL STRUCTURE ---
+            const userPrompt = `Write a natural, conversational cold email using this contact information:
+---
+${prospect_info}
+---
+
+Write like you're a real person reaching out - natural, authentic, non-promotional tone.
+
+Key guidelines:
+- Start casually: "Hey ${rowData.first_name || rowData.name || 'there'}", "Hi ${rowData.first_name || rowData.name || 'there'}", "${rowData.first_name || rowData.name || 'there'}, hope you're well"
+- Mention you work with AI automation in a casual way.
+- ${instruction_text}.
+- Keep it conversational and authentic.
+- End with if-then call CTA + "if not, all good/no worries/totally fine" with a smiley.
+- Use proper spacing with blank lines between paragraphs for readability.
+- NO signatures, names, or formal closings.
+- 50-70 words max.
+
+Make each email sound completely different - vary greetings, structure, tone, and phrasing naturally.`;
+
+            // --- REVISED SYSTEM PROMPT TO PREVENT CONFUSION ---
+            const systemPrompt = `You are an AI assistant writing a cold email. The user will provide you with information about a prospect. Your job is to write a short, casual email FROM a person who works in "AI automation" TO that prospect.
+It is critical that you understand this role. You are the sender. The prospect information is for the recipient. Do not get confused and act as if you work for the prospect's company.
+Follow all formatting rules from the user, especially the negative constraints about what NOT to include. The required output format is: Greeting\n\nMain Content\n\nCTA\n\nFallback with smiley.`;
+
+            const payload = {
+                model: "gpt-4o-mini",
+                messages: [
+                    { "role": "system", "content": systemPrompt },
+                    { "role": "user", "content": userPrompt }
+                ],
+                temperature: 0.8,
+                max_tokens: 200,
+            };
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error?.message || `API request failed with status ${response.status}`);
+            }
+            
+            if (!result.choices || result.choices.length === 0) {
+                throw new Error("API returned no choices. Please check the prompt and API key permissions.");
+            }
+
+            const text = result.choices[0]?.message?.content;
+            if (!text) {
+                throw new Error("API returned an empty message. The model may have refused to answer.");
+            }
+            
+            return text.trim();
+        }
+
+        function downloadResults() {
+            if (newWorkbook) {
+                const date = new Date();
+                const timestamp = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}${date.getMinutes().toString().padStart(2, '0')}`;
+                const outputFilename = `generated_emails_${timestamp}.xlsx`;
+                
+                XLSX.writeFile(newWorkbook, outputFilename);
+            } else {
+                showError("No results available to download.");
+            }
+        }
+
+        // --- Google Sheets Export Logic ---
+
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: SCOPES,
+                callback: '', // Callback is handled by the promise
+            });
+            gisInited = true;
+        }
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: GOOGLE_API_KEY,
+                discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+            });
+            gapiInited = true;
+        }
+
+        function handleExportToSheetsClick() {
+            if (!GOOGLE_CLIENT_ID || !GOOGLE_API_KEY) {
+                showError("Google Client ID and API Key must be configured in the script to use this feature.");
+                return;
+            }
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                createAndPopulateSheet();
+            }
+        }
+
+        async function createAndPopulateSheet() {
+            sheetsResultMessage.textContent = 'Creating Google Sheet...';
+            sheetsResultArea.classList.remove('hidden');
+            exportToSheetsBtn.disabled = true;
+
+            try {
+                const date = new Date();
+                const timestamp = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                const response = await gapi.client.sheets.spreadsheets.create({
+                    properties: {
+                        title: `Generated Emails - ${timestamp}`,
+                    },
+                });
+
+                const spreadsheetId = response.result.spreadsheetId;
+                const spreadsheetUrl = response.result.spreadsheetUrl;
+
+                const headers = Object.keys(processedDataForExport[0]);
+                const values = [headers, ...processedDataForExport.map(row => headers.map(header => row[header]))];
+
+                await gapi.client.sheets.spreadsheets.values.update({
+                    spreadsheetId: spreadsheetId,
+                    range: 'Sheet1!A1',
+                    valueInputOption: 'USER_ENTERED',
+                    resource: {
+                        values: values,
+                    },
+                });
+                
+                sheetsResultMessage.innerHTML = `Success! View your data in <a href="${spreadsheetUrl}" target="_blank" class="font-bold text-blue-600 hover:underline">this Google Sheet</a>.`;
+
+            } catch (err) {
+                showError(`Google Sheets export failed: ${err.message || JSON.stringify(err)}`);
+            } finally {
+                exportToSheetsBtn.disabled = false;
+            }
+        }
+
+    </script>
+</body>
+</html>
