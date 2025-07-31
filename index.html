@@ -281,7 +281,7 @@ It is critical that you understand this role. You are the sender. The prospect i
 Follow all formatting rules from the user, especially the negative constraints about what NOT to include. The required output format is: Greeting\n\nMain Content\n\nCTA\n\nFallback with smiley.`;
 
             const payload = {
-                model: "gpt-4o-mini",
+                model: "gpt-4o-turbo",
                 messages: [
                     { "role": "system", "content": systemPrompt },
                     { "role": "user", "content": userPrompt }
