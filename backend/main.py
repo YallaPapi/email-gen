@@ -115,12 +115,6 @@ async def attempt_recovery(job_id: str):
         print(f"Recovery error for {job_id}: {e}")
         return None
 
-@app.get("/", response_class=HTMLResponse)
-async def read_root():
-    html_path = Path("frontend/index.html")
-    if not html_path.exists():
-        raise HTTPException(status_code=404, detail="index.html not found")
-    return HTMLResponse(content=html_path.read_text())
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), mode: str = Form("single")):
@@ -445,6 +439,10 @@ async def serve_frontend():
         # Try to read from the frontend directory
         import os
         possible_paths = [
+            "../test_page.html",
+            "test_page.html",
+            "./test_page.html",
+            "/app/test_page.html",
             "../frontend/index.html",
             "frontend/index.html", 
             "./frontend/index.html",
