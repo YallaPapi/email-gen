@@ -6,11 +6,16 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import json
 import threading
+import redis
+from worker_models import WorkerModelAssigner
 
 load_dotenv()
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 celery_app = Celery("tasks", broker=redis_url, backend=redis_url)
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Initialize worker model assigner
+model_assigner = WorkerModelAssigner()
 
 # Global rate limiter - 1 request per second
 last_request_time = 0
@@ -66,9 +71,18 @@ Follow all formatting rules from the user, especially the negative constraints a
         # Rate limit API calls
         rate_limited_api_call()
         
+        # Get model assigned to this worker
+        model = model_assigner.get_worker_model()
+        
         try:
+            # Log which worker and model we're using
+            worker_info = f"Worker {os.getpid()}"
+            if hasattr(self.request, 'hostname'):
+                worker_info = self.request.hostname
+            print(f"[{worker_info}] Using model: {model} for row {row_index}")
+            
             completion = client.chat.completions.create(
-                model="gpt-3.5-turbo",  # Changed from gpt-4o-mini
+                model=model,  # Use worker-assigned model
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -76,6 +90,7 @@ Follow all formatting rules from the user, especially the negative constraints a
                 temperature=0.8,
                 max_tokens=200,
             )
+                
         except Exception as api_error:
             if "429" in str(api_error) or "rate_limit" in str(api_error).lower():
                 # Check if it's daily limit (don't retry if daily limit hit)
@@ -97,7 +112,8 @@ Follow all formatting rules from the user, especially the negative constraints a
             "index": row_index,
             "row_data": row_data,
             "email": email_text,
-            "status": "success"
+            "status": "success",
+            "model_used": model if 'model' in locals() else "none"
         }
         
     except Exception as e:
@@ -127,7 +143,18 @@ def combine_results(results, job_id, total_rows):
         
         for result in sorted_results:
             row = result['row_data'].copy()
-            row['generated_email'] = result['email']
+            
+            # Clean email text to avoid Excel character issues
+            email_text = result['email']
+            if isinstance(email_text, str):
+                # Remove problematic characters that Excel can't handle
+                email_text = email_text.replace('\x00', '').replace('\x01', '').replace('\x02', '')
+                # Remove other control characters but keep newlines, tabs, carriage returns
+                email_text = ''.join(char for char in email_text if ord(char) >= 32 or char in '\n\r\t')
+            
+            row['generated_email'] = email_text
+            # Add model info for tracking
+            row['model_used'] = result.get('model_used', 'unknown')
             final_data.append(row)
             
             if "DAILY_LIMIT_HIT" in str(result['email']):
@@ -135,10 +162,18 @@ def combine_results(results, job_id, total_rows):
             elif result['status'] == 'success':
                 successful_emails += 1
         
-        # Save to Excel (even partial results)
+        # Save to Excel (even partial results), with CSV fallback
         df = pd.DataFrame(final_data)
-        output_file = f"uploads/result_{job_id}.xlsx"
-        df.to_excel(output_file, index=False)
+        excel_file = f"uploads/result_{job_id}.xlsx"
+        csv_file = f"uploads/result_{job_id}.csv"
+        
+        try:
+            df.to_excel(excel_file, index=False)
+            output_file = excel_file
+        except Exception as excel_error:
+            print(f"Excel save failed: {excel_error}, saving as CSV instead")
+            df.to_csv(csv_file, index=False, encoding='utf-8')
+            output_file = csv_file
         
         # Update final status
         if daily_limit_hit:
