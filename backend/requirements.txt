@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+celery
+redis
+python-dotenv
+openai
+pandas
+openpyxl
+python-multipart
+aiofiles
