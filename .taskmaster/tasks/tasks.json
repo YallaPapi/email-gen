@@ -11,11 +11,76 @@
         "dependencies": [],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Fix Celery Chord Callback Hanging in Email Sequence Generation",
+        "description": "Resolve issues with Celery chord callback hanging in the email sequence generation workflow by implementing ignore_result=False, configuring a reliable result backend, and adding robust production-grade error handling based on TaskMaster research.",
+        "details": "1. **Set ignore_result=False**: Ensure all tasks participating in the chord (both header and callback) are defined with `ignore_result=False`. For decorated tasks, use `@app.task(ignore_result=False)`. For class-based tasks, set `ignore_result = False` in the class definition. This is critical, as Celery chords require result tracking to function correctly[4].\n\n2. **Configure Result Backend**: Verify that the Celery application is configured with a reliable result backend (e.g., Redis, RabbitMQ, or a database). Update the Celery configuration (e.g., in `celeryconfig.py` or equivalent) to set `result_backend` to a production-ready backend. Avoid using the default or in-memory backends in production, as they do not persist results and can cause chord synchronization failures[4].\n\n3. **Production-Ready Error Handling**:\n   - Implement error callbacks using the `link_error` option to capture and handle exceptions in both header and callback tasks. Define a dedicated error handler task (e.g., `@app.task(bind=True)`) that logs errors, sends notifications, or triggers compensating actions as needed[3].\n   - Ensure that all exceptions in the chord workflow are logged with sufficient context (task name, arguments, traceback).\n   - Optionally, implement retry logic for transient failures in the chord callback, using Celery's built-in retry mechanisms.\n\n4. **Testing and Monitoring**:\n   - Add instrumentation or logging to monitor the status of chord execution and callback completion.\n   - Document the configuration and error handling patterns for future maintainers.\n\n5. **Code Example**:\n```python\n@app.task(ignore_result=False)\ndef send_email_task(email_data):\n    # ...\n\n@app.task(ignore_result=False)\ndef email_sequence_callback(results):\n    # ...\n\n@app.task(bind=True)\ndef chord_error_handler(self, request, exc, traceback):\n    logger.error(f\"Task {request.id} failed: {exc}\")\n\nheader = [send_email_task.s(data) for data in email_batch]\nchord(header)(email_sequence_callback.s()).apply_async(link_error=chord_error_handler.s())\n```\n\n6. **Documentation**: Update internal documentation to reflect the new configuration and error handling approach.",
+        "testStrategy": "- Write unit and integration tests to verify that chords execute successfully and the callback is triggered as expected when all header tasks complete.\n- Simulate failures in header and callback tasks to confirm that the error handler is invoked and errors are logged or handled appropriately.\n- Test with the configured result backend to ensure results are persisted and retrieved correctly.\n- Monitor logs and Celery events during test runs to verify that no chord callbacks hang and all tasks complete or fail gracefully.\n- Review Celery worker logs for any warnings or errors related to result backend or ignored results.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit and Refactor Chord Task Definitions for Result Tracking",
+            "description": "Ensure all tasks participating in the chord (both header and callback) are explicitly defined with ignore_result=False, updating decorators or class-based tasks as needed to guarantee result persistence required for chord synchronization.",
+            "dependencies": [],
+            "details": "Review all Celery task definitions involved in the email sequence generation workflow. For decorated tasks, use @app.task(ignore_result=False). For class-based tasks, set ignore_result = False in the class definition. This is critical for proper chord operation.",
+            "status": "done",
+            "testStrategy": "Write unit tests to confirm that task results are stored and retrievable from the result backend for all chord participants."
+          },
+          {
+            "id": 2,
+            "title": "Configure and Validate a Reliable Celery Result Backend",
+            "description": "Set up and verify a production-grade result backend (such as Redis, RabbitMQ, or a database) in the Celery configuration to ensure reliable result storage and chord synchronization.",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "Update celeryconfig.py or equivalent to set result_backend to a persistent, production-ready backend. Avoid in-memory or default backends. Validate backend connectivity and persistence.",
+            "status": "done",
+            "testStrategy": "Integration test: Trigger a chord and verify that results are persisted and accessible in the configured backend after task completion."
+          },
+          {
+            "id": 3,
+            "title": "Implement Robust Error Handling and Callback Logic",
+            "description": "Add production-grade error handling using link_error or on_error callbacks, define a dedicated error handler task, and ensure all exceptions in the chord workflow are logged with context. Optionally, implement retry logic for transient failures.",
+            "dependencies": [
+              "2.2"
+            ],
+            "details": "Define error handler tasks (e.g., @app.task(bind=True)) to log errors, send notifications, or trigger compensating actions. Use link_error or on_error to capture exceptions in both header and callback tasks. Ensure logging includes task name, arguments, and traceback. Implement retry logic where appropriate.",
+            "status": "pending",
+            "testStrategy": "Simulate failures in header and callback tasks to verify that the error handler is invoked, errors are logged, and retry logic functions as intended."
+          },
+          {
+            "id": 4,
+            "title": "Instrument, Test, and Monitor Chord Execution",
+            "description": "Add instrumentation or logging to monitor the status of chord execution and callback completion. Develop comprehensive tests to verify correct chord behavior and error handling.",
+            "dependencies": [
+              "2.3"
+            ],
+            "details": "Integrate monitoring/logging for chord status and callback execution. Write unit and integration tests to ensure chords execute successfully and callbacks are triggered as expected. Document test results and monitoring setup.",
+            "status": "pending",
+            "testStrategy": "Run automated tests covering successful execution, error scenarios, and monitoring/logging output. Confirm that all chord states and errors are observable."
+          },
+          {
+            "id": 5,
+            "title": "Update Documentation and Provide Code Examples",
+            "description": "Revise internal documentation to reflect the new configuration, error handling approach, and provide clear code examples for maintainers.",
+            "dependencies": [
+              "2.4"
+            ],
+            "details": "Document the updated Celery configuration, result backend setup, error handling patterns, and provide annotated code snippets demonstrating the correct chord usage and error handling.",
+            "status": "pending",
+            "testStrategy": "Peer review documentation for clarity and completeness. Ensure code examples are tested and match the implemented solution."
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2025-08-01T23:20:00Z",
-      "updated": "2025-08-01T03:20:32.671Z",
+      "updated": "2025-08-02T21:12:54.935Z",
       "version": "1.0.0",
       "description": "Tasks for master context"
     }

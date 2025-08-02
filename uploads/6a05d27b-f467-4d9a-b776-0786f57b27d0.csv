@@ -1,0 +1,3 @@
+name,title,country,email,industry,first_name,organization_short_description,organization_name,state,city
+John Smith,CEO,United States,john@testcorp.com,Software,John,"AI-powered analytics platform","TestCorp Inc",CA,San Francisco
+Jane Doe,VP Sales,United States,jane@marketinc.com,Marketing,Jane,"Digital marketing agency","MarketInc",NY,New York

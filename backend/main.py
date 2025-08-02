@@ -1,11 +1,11 @@
 import os
 import uuid
 from pathlib import Path
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from celery.result import AsyncResult
-from tasks import process_spreadsheet_task, celery_app, update_status
+from tasks import process_spreadsheet_task, process_spreadsheet_sequence_task, celery_app, update_status
 import redis
 from worker_models import WorkerModelAssigner
 from datetime import datetime
@@ -123,7 +123,7 @@ async def read_root():
     return HTMLResponse(content=html_path.read_text())
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), mode: str = Form("single")):
     # Validate file extension
     allowed_extensions = {".csv", ".xlsx", ".xls"}
     file_ext = Path(file.filename).suffix.lower()
@@ -162,14 +162,15 @@ async def upload_file(file: UploadFile = File(...)):
             while chunk := file.file.read(8192):  # 8KB chunks
                 f.write(chunk)
         
-        # Queue the task
-        task = process_spreadsheet_task.delay(file_location, job_id)
+        # Queue the task - pass mode as parameter
+        task = process_spreadsheet_task.delay(file_location, job_id, mode)
         job_status_db[job_id] = {
             "status": "QUEUED", 
             "progress": 0, 
             "total": 0, 
             "result_file": None,
-            "original_filename": file.filename
+            "original_filename": file.filename,
+            "mode": mode
         }
         return {"job_id": job_id, "status": "QUEUED"}
     except Exception as e:
@@ -345,3 +346,228 @@ async def delete_job(job_id: str):
         return {"status": "success", "message": f"Job {job_id} deleted"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/debug/{job_id}")
+async def debug_job(job_id: str):
+    """Debug a failed job by examining task results"""
+    try:
+        import redis
+        import json
+        import pickle
+        
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        r = redis.from_url(redis_url)
+        
+        # Check progress counter
+        progress_key = f"progress_{job_id}"
+        progress = r.get(progress_key)
+        
+        # Get all task result keys and analyze them
+        task_keys = r.keys("celery-task-meta-*")
+        successful_tasks = 0
+        failed_tasks = 0
+        malformed_tasks = 0
+        task_details = []
+        
+        for key in task_keys:
+            try:
+                raw_result = r.get(key)
+                if not raw_result:
+                    continue
+                
+                # Try to deserialize
+                try:
+                    result_data = pickle.loads(raw_result)
+                except:
+                    try:
+                        result_data = json.loads(raw_result.decode('utf-8'))
+                    except:
+                        malformed_tasks += 1
+                        continue
+                
+                # Check if this is an email task result
+                if isinstance(result_data, dict) and 'result' in result_data:
+                    result = result_data['result']
+                    task_id = key.decode('utf-8').replace('celery-task-meta-', '')
+                    
+                    if isinstance(result, dict):
+                        if 'row_data' in result or 'email' in result or 'initial_email' in result:
+                            task_info = {
+                                "task_id": task_id[:8] + "...",
+                                "status": result.get('status', 'unknown'),
+                                "index": result.get('index', 'unknown'),
+                                "has_email": 'email' in result or 'initial_email' in result,
+                                "error_preview": None
+                            }
+                            
+                            if result.get('status') == 'success':
+                                successful_tasks += 1
+                            else:
+                                failed_tasks += 1
+                                # Get error preview
+                                for field in ['initial_email', 'email']:
+                                    if field in result and 'ERROR' in str(result[field]):
+                                        task_info["error_preview"] = str(result[field])[:200]
+                                        break
+                            
+                            task_details.append(task_info)
+                    else:
+                        malformed_tasks += 1
+                        
+            except Exception:
+                malformed_tasks += 1
+        
+        return {
+            "job_id": job_id,
+            "progress": int(progress) if progress else 0,
+            "task_summary": {
+                "successful": successful_tasks,
+                "failed": failed_tasks,
+                "malformed": malformed_tasks,
+                "total_in_redis": len(task_keys)
+            },
+            "task_details": task_details[:10],  # First 10 tasks
+            "recommendations": [
+                "Check worker logs for detailed error messages",
+                "Verify OpenAI API key and rate limits", 
+                "Check network connectivity",
+                "Monitor worker memory usage"
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Debug failed: {str(e)}")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend():
+    """Serve the frontend HTML"""
+    try:
+        # Try to read from the frontend directory
+        import os
+        possible_paths = [
+            "../frontend/index.html",
+            "frontend/index.html", 
+            "./frontend/index.html",
+            "/app/frontend/index.html"
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    return HTMLResponse(content=f.read())
+        
+        # If no file found, raise FileNotFoundError to trigger fallback
+        raise FileNotFoundError("Frontend file not found")
+        
+    except FileNotFoundError:
+        # Fallback - serve a basic working interface
+        return HTMLResponse(content="""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { background: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; }
+        .status { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .progress { background: #e0e0e0; height: 30px; border-radius: 10px; overflow: hidden; }
+        .progress-bar { background: #4CAF50; height: 100%; width: 0%; transition: width 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scalable Email Generator</h1>
+        <div>
+            <h3>Email Generation Mode:</h3>
+            <label><input type="radio" name="mode" value="single" checked> Single Email</label>
+            <label><input type="radio" name="mode" value="sequence"> Email Sequence (3 emails)</label>
+        </div>
+        <div style="margin: 20px 0;">
+            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+            <button class="btn" onclick="uploadFile()">Upload and Process</button>
+        </div>
+        <div id="status" class="status" style="display:none;"></div>
+        <div id="progress" class="progress" style="display:none;">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <div id="result" style="display:none;">
+            <h3>Complete!</h3>
+            <a id="downloadLink" class="btn" href="#">Download Result</a>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let statusInterval = null;
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('mode', mode);
+
+            try {
+                const response = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await response.json();
+                currentJobId = data.job_id;
+                
+                showStatus('Processing...', 'success');
+                document.getElementById('progress').style.display = 'block';
+                startStatusCheck();
+            } catch (error) {
+                showStatus('Upload failed: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+
+        async function checkStatus() {
+            if (!currentJobId) return;
+            
+            try {
+                const response = await fetch(`/status/${currentJobId}`);
+                const data = await response.json();
+                
+                if (data.status === 'SUCCESS') {
+                    showStatus('Processing complete!', 'success');
+                    document.getElementById('downloadLink').href = `/download/${currentJobId}`;
+                    document.getElementById('result').style.display = 'block';
+                    clearInterval(statusInterval);
+                } else if (data.status === 'FAILURE') {
+                    showStatus('Processing failed', 'error');
+                    clearInterval(statusInterval);
+                } else {
+                    const progress = Math.round((data.progress / data.total) * 100);
+                    document.getElementById('progressBar').style.width = progress + '%';
+                    showStatus(`Processing... ${data.progress}/${data.total}`, 'success');
+                }
+            } catch (error) {
+                console.error('Status check failed:', error);
+            }
+        }
+
+        function startStatusCheck() {
+            checkStatus();
+            statusInterval = setInterval(checkStatus, 2000);
+        }
+    </script>
+</body>
+</html>
+        """)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to serve frontend: {str(e)}")

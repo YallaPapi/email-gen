@@ -20,8 +20,10 @@ services:
     depends_on:
       - redis
     command: uvicorn main:app --host 0.0.0.0 --port 8000
-  worker:
+  # Worker 1 - gpt-3.5-turbo
+  worker1:
     build: ./backend
+    container_name: email_gen_worker1
     volumes:
       - ./uploads:/app/uploads
     environment:
@@ -30,6 +32,58 @@ services:
     depends_on:
       - redis
       - backend
-    command: celery -A tasks.celery_app worker --loglevel=info --concurrency=1
-    deploy:
-      replicas: 2
+    command: celery -A tasks worker --hostname=worker1@%h --concurrency=1 --loglevel=info
+
+  # Worker 2 - gpt-3.5-turbo-0125
+  worker2:
+    build: ./backend
+    container_name: email_gen_worker2
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - redis
+      - backend
+    command: celery -A tasks worker --hostname=worker2@%h --concurrency=1 --loglevel=info
+
+  # Worker 3 - gpt-3.5-turbo-1106
+  worker3:
+    build: ./backend
+    container_name: email_gen_worker3
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - redis
+      - backend
+    command: celery -A tasks worker --hostname=worker3@%h --concurrency=1 --loglevel=info
+
+  # Worker 4 - gpt-3.5-turbo-16k
+  worker4:
+    build: ./backend
+    container_name: email_gen_worker4
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - redis
+      - backend
+    command: celery -A tasks worker --hostname=worker4@%h --concurrency=1 --loglevel=info
+
+  # Optional: Flower for monitoring (access at http://localhost:5555)
+  flower:
+    build: ./backend
+    container_name: email_gen_flower
+    ports:
+      - "5555:5555"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    command: celery -A tasks flower --broker=redis://redis:6379/0
