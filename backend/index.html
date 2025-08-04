@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .upload-section {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+            background: #fafafa;
+        }
+        .upload-section.dragover {
+            border-color: #4CAF50;
+            background: #e8f5e9;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+            margin: 2px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.processing {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .progress {
+            background: #e0e0e0;
+            height: 30px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            background: #4CAF50;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        #result {
+            margin-top: 20px;
+            display: none;
+        }
+        .download-btn {
+            background: #2196F3;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .download-btn:hover {
+            background: #0b7dda;
+        }
+        
+        /* Job Management Styles */
+        .jobs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .jobs-table th, .jobs-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .jobs-table th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .jobs-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .jobs-table tr:hover {
+            background-color: #e8f5e9;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-badge.success {
+            background: #28a745;
+            color: white;
+        }
+        .status-badge.processing {
+            background: #17a2b8;
+            color: white;
+        }
+        .status-badge.error, .status-badge.failure {
+            background: #dc3545;
+            color: white;
+        }
+        .status-badge.cancelled {
+            background: #6c757d;
+            color: white;
+        }
+        .status-badge.queued {
+            background: #ffc107;
+            color: black;
+        }
+        .job-actions {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scalable Email Generator</h1>
+        <div class="upload-section" id="dropZone">
+            <div style="margin-bottom: 20px;">
+                <h3>Email Generation Mode:</h3>
+                <label style="margin-right: 20px;">
+                    <input type="radio" name="mode" value="single" checked> Single Email (Initial outreach only)
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="sequence"> Email Sequence (Initial + 2 Follow-ups)
+                </label>
+            </div>
+            
+            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls">
+            <div style="margin: 20px 0;">
+                <label for="fileInput" class="btn" style="cursor: pointer; display: inline-block;">
+                    Choose CSV/Excel File
+                </label>
+            </div>
+            <div id="fileName" style="margin: 10px 0; font-weight: bold;"></div>
+            <button class="btn" id="uploadBtn" onclick="uploadFile()" style="display: none;">Upload and Process</button>
+        </div>
+        
+        <div id="currentJobStatus" class="status"></div>
+        <div id="progressContainer" class="progress" style="display:none;">
+            <div id="progressBar" class="progress-bar">0%</div>
+        </div>
+        
+        <div id="result">
+            <h3>Complete!</h3>
+            <a id="downloadLink" class="download-btn" href="#">Download Result</a>
+            <button class="btn btn-secondary" onclick="startNewJob()" style="margin-left: 10px;">Start New Job</button>
+        </div>
+    </div>
+
+    <div class="container" id="jobsContainer">
+        <h2>Job History</h2>
+        <div style="text-align: right; margin-bottom: 10px;">
+            <button class="btn btn-secondary btn-small" onclick="refreshJobs()">Refresh</button>
+        </div>
+        <div id="jobsList">
+            <p class="empty-message">Loading jobs...</p>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let statusCheckInterval = null;
+        let selectedFile = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            setupFileInput();
+            setupDragAndDrop();
+            refreshJobs();
+            
+            // Check for existing job on page load
+            currentJobId = localStorage.getItem('currentJobId');
+            if (currentJobId) {
+                startStatusChecking();
+            }
+        });
+
+        function setupFileInput() {
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    selectedFile = file;
+                    fileName.textContent = `Selected: ${file.name}`;
+                    uploadBtn.style.display = 'inline-block';
+                }
+            });
+        }
+
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.name.match(/\.(csv|xlsx|xls)$/i)) {
+                        selectedFile = file;
+                        document.getElementById('fileName').textContent = `Selected: ${file.name}`;
+                        document.getElementById('uploadBtn').style.display = 'inline-block';
+                    } else {
+                        alert('Please select a CSV or Excel file');
+                    }
+                }
+            });
+        }
+
+        async function uploadFile() {
+            if (!selectedFile) {
+                alert('Please select a file first');
+                return;
+            }
+            
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const uploadBtn = document.getElementById('uploadBtn');
+            const fileName = document.getElementById('fileName');
+            
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('mode', mode);
+                
+                showStatus('processing', 'Uploading file...');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Upload failed: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                currentJobId = data.job_id;
+                
+                // Store current job in localStorage
+                localStorage.setItem('currentJobId', currentJobId);
+                
+                showStatus('processing', 'File uploaded successfully. Processing...');
+                startStatusChecking();
+                
+                // Reset upload section
+                selectedFile = null;
+                fileName.textContent = '';
+                uploadBtn.style.display = 'none';
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload and Process';
+                document.getElementById('fileInput').value = '';
+                
+            } catch (error) {
+                showStatus('error', `Upload failed: ${error.message}`);
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload and Process';
+            }
+        }
+
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('currentJobStatus');
+            const statusText = document.getElementById('statusText');
+            
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = message;
+            
+            if (type !== 'processing') {
+                document.getElementById('progressContainer').style.display = 'none';
+            } else {
+                document.getElementById('progressContainer').style.display = 'block';
+            }
+        }
+
+        function updateProgress(progress, total) {
+            const progressBar = document.getElementById('progressBar');
+            const percentage = total > 0 ? Math.round((progress / total) * 100) : 0;
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = `${percentage}% (${progress}/${total})`;
+        }
+
+        async function checkStatus() {
+            if (!currentJobId) return;
+
+            try {
+                const response = await fetch(`/status/${currentJobId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        showStatus('error', 'Job not found');
+                        stopStatusChecking();
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.status === 'SUCCESS') {
+                    showStatus('success', 'Processing complete!');
+                    showResult(currentJobId);
+                    stopStatusChecking();
+                    localStorage.removeItem('currentJobId');
+                    refreshJobs();
+                } else if (data.status === 'FAILURE') {
+                    showStatus('error', 'Processing failed. Please try again.');
+                    stopStatusChecking();
+                    localStorage.removeItem('currentJobId');
+                } else if (data.status === 'CANCELLED') {
+                    showStatus('error', 'Job was cancelled.');
+                    stopStatusChecking();
+                    localStorage.removeItem('currentJobId');
+                    refreshJobs();
+                } else if (data.status.startsWith('PARTIAL_')) {
+                    showStatus('error', `Processing stopped - daily API limit reached. ${data.status}`);
+                    showResult(currentJobId);
+                    stopStatusChecking();
+                    localStorage.removeItem('currentJobId');
+                    refreshJobs();
+                } else {
+                    showStatus('processing', `Processing... (${data.progress}/${data.total} emails)`);
+                    updateProgress(data.progress, data.total);
+                }
+            } catch (error) {
+                console.error('Status check failed:', error);
+            }
+        }
+
+        function startStatusChecking() {
+            checkStatus();
+            statusCheckInterval = setInterval(checkStatus, 2000);
+        }
+
+        function stopStatusChecking() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+            }
+        }
+
+        function showResult(jobId) {
+            const resultDiv = document.getElementById('result');
+            const downloadLink = document.getElementById('downloadLink');
+            
+            resultDiv.style.display = 'block';
+            downloadLink.href = `/download/${jobId}`;
+        }
+
+        function startNewJob() {
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('currentJobStatus').style.display = 'none';
+            document.getElementById('progressContainer').style.display = 'none';
+            currentJobId = null;
+            localStorage.removeItem('currentJobId');
+        }
+
+        // Job management functions
+        async function refreshJobs() {
+            try {
+                // First trigger a refresh of job history from filesystem
+                try {
+                    await fetch('/refresh-jobs', { method: 'POST' });
+                } catch (refreshError) {
+                    console.warn('Failed to trigger job refresh:', refreshError);
+                }
+                
+                // Then get the updated jobs list
+                const response = await fetch('/jobs', {
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+                const data = await response.json();
+                displayJobs(data.jobs);
+            } catch (error) {
+                console.error('Failed to load jobs:', error);
+                document.getElementById('jobsList').innerHTML = '<p class="empty-message">Failed to load jobs</p>';
+            }
+        }
+
+        function displayJobs(jobs) {
+            const jobsList = document.getElementById('jobsList');
+            
+            if (!jobs || jobs.length === 0) {
+                jobsList.innerHTML = '<p class="empty-message">No jobs found</p>';
+                return;
+            }
+            
+            let html = `
+                <table class="jobs-table">
+                    <thead>
+                        <tr>
+                            <th>File Name</th>
+                            <th>Mode</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Upload Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            jobs.forEach(job => {
+                const uploadTime = job.upload_time ? new Date(job.upload_time * 1000).toLocaleString() : 'Unknown';
+                const statusClass = job.status.toLowerCase().replace(/[_-]/g, '');
+                const progressText = job.total > 0 ? `${job.progress}/${job.total}` : '-';
+                
+                html += `
+                    <tr>
+                        <td>${job.original_filename}</td>
+                        <td>${job.mode === 'sequence' ? 'Sequence' : 'Single'}</td>
+                        <td><span class="status-badge ${statusClass}">${job.status}</span></td>
+                        <td>${progressText}</td>
+                        <td>${uploadTime}</td>
+                        <td>
+                            <div class="job-actions">
+                                ${job.has_result ? `<a href="${job.download_url}" class="btn btn-small">Download</a>` : ''}
+                                ${job.status === 'PROCESSING' || job.status === 'QUEUED' ? 
+                                    `<button class="btn btn-danger btn-small" onclick="cancelJob('${job.job_id}')">Cancel</button>` : ''}
+                                ${job.status !== 'PROCESSING' && job.status !== 'QUEUED' ? 
+                                    `<button class="btn btn-danger btn-small" onclick="deleteJob('${job.job_id}')">Delete</button>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            jobsList.innerHTML = html;
+        }
+
+        async function cancelJob(jobId) {
+            if (!confirm('Are you sure you want to cancel this job?')) return;
+            
+            try {
+                const response = await fetch(`/cancel/${jobId}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    refreshJobs();
+                    if (currentJobId === jobId) {
+                        stopStatusChecking();
+                        showStatus('error', 'Job cancelled');
+                        currentJobId = null;
+                        localStorage.removeItem('currentJobId');
+                    }
+                } else {
+                    alert('Failed to cancel job');
+                }
+            } catch (error) {
+                console.error('Failed to cancel job:', error);
+                alert('Failed to cancel job');
+            }
+        }
+
+        async function deleteJob(jobId) {
+            if (!confirm('Are you sure you want to delete this job? This will remove all associated files.')) return;
+            
+            try {
+                const response = await fetch(`/delete/${jobId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    refreshJobs();
+                } else {
+                    alert('Failed to delete job');
+                }
+            } catch (error) {
+                console.error('Failed to delete job:', error);
+                alert('Failed to delete job');
+            }
+        }
+    </script>
+</body>
+</html>
