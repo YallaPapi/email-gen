@@ -142,31 +142,52 @@ def generate_email_sequence_for_row_direct(row_data, row_index, job_id):
         
         model = model_assigner.get_worker_model()
         
-        # STEP 1: Generate initial email - ORIGINAL WORKING PROMPT
+        # STEP 1: Generate initial email - USER'S EXACT PROMPT
         user_prompt_initial = f"""
-Write a natural, conversational cold email using this contact information:
+Contact info:
 ---
 {prospect_info}
 ---
-Write like you're a real person reaching out - natural, authentic, non-promotional tone.
-Key guidelines:
-- Start casually: "Hey {first_name}", "Hi {first_name}", "{first_name}, hope you're well"
-- Mention you work with AI automation in a casual way.
-- Reference their specific situation when possible.
-- Keep it conversational and authentic.  
-- End with EXACTLY these words: "If you're open to a chat, let me know - if not, all good." Use this exact phrase, no variations. NO apologetic language.
-- Use proper spacing with blank lines between paragraphs for readability.
-- NO signatures, names, or formal closings.
-- 50-70 words max.
-Make each email sound completely different - vary greetings, structure, tone, and phrasing naturally.
+Rules:
+If the fields organization_short_description and industry have data in them, then use that data to create a personalized response that shows an understanding of the common problems in their industry. Then provide an example of how AI can help solve those problems. Use literal language. Make each email significantly personalized and vary your language. 
+
+If those fields are blank, then examine organization_name and use your best judgement about the industry and type of business they are in. 
+
+End all emails with a spun version of this:
+
+If {{you're interested|that sounds good|you want more info}}, let's {{schedule|get on|set up}} a quick {{call|meeting|Zoom call}} and I {{will show you everything|can show you how it works|will show you the magic}}. If not, {{all good|no problem|no worries}}.
+
+Keep it concise but sufficiently personalized
 """
 
         system_prompt_initial = """
-You are an AI assistant writing a cold email. Write ONLY the email body text with NO subject line, NO signatures, NO names, NO formal closings.
-Write a short, casual email FROM a person who works in "AI automation" TO the prospect.
-Follow all formatting rules. Be confident and direct. End with "if not, all good" ONLY.
-Avoid spam trigger words. Use natural, conversational language.
-CRITICAL: Do not include "Subject:", "Best,", "Cheers,", "[Your Name]", or any signatures.
+You are writing a cold email. The user prompt contains special spintext formatting that you MUST process correctly.
+
+SPINTEXT PROCESSING GUIDE:
+Spintext appears as {{option1|option2|option3}} with curly brackets and options separated by vertical bars. This is NOT part of the email text - it's instructions for you to create variations. Here's exactly how to handle it:
+
+1. IDENTIFY: Look for any text wrapped in double curly brackets {{ }}
+2. EXTRACT: Find all options separated by vertical bars |
+3. CHOOSE: Randomly select ONE option from each bracket group
+4. REPLACE: Write the chosen option naturally in the email, removing ALL brackets and bars
+5. VARY: Make different random choices each time you see spintext
+
+EXAMPLE PROCESSING:
+Input: "If {{you're interested|that sounds good|you want more info}}, let's {{schedule|get on|set up}} a quick {{call|meeting|Zoom call}}"
+
+Possible outputs:
+- "If you're interested, let's schedule a quick call"
+- "If that sounds good, let's get on a meeting" 
+- "If you want more info, let's set up a quick Zoom call"
+
+CRITICAL RULES:
+- NEVER write {{ }} brackets in your response
+- NEVER write | vertical bars in your response  
+- ALWAYS pick ONE option from each group
+- ALWAYS make random selections to create variety
+- The spintext creates natural language variations
+
+Process ALL spintext in the user prompt this way. Write personalized emails using the contact information provided.
 """
         
         rate_limited_api_call()
@@ -183,29 +204,32 @@ CRITICAL: Do not include "Subject:", "Best,", "Cheers,", "[Your Name]", or any s
         initial_email = completion_initial.choices[0].message.content.strip()
         initial_email = nuclear_clean_email(initial_email)
         
-        # STEP 2: Generate follow-up 1 - ORIGINAL WORKING PROMPT  
+        # STEP 2: Generate follow-up 1 - USER'S EXACT PROMPT
         user_prompt_followup1 = f"""
-You are an expert AI business consultant. Based on the following company data, identify the most pressing business challenge a company in the {industry} sector like {company_name} would face. Then, propose a specific, high-value AI solution (from our services: AI Chatbots, Automated Lead Gen, Database Reactivation) that directly solves that challenge. Frame it as a unique, tangible benefit. Do not be generic.
-
 Company: {company_name}
-Industry: {industry}
 Contact: {first_name}
 
-Write a follow-up email that shows you understand their industry challenges and offer a specific AI solution that would genuinely help their business.
+Tell the client you just wanted to send over a bit more info about how we can help. For example, it may look something like this:
 
-Start with: "Hey {first_name}, hope you're good. Just wanted to shoot you this quick email with a little more info about how we would be able to help."
+Hey {first_name}, just {{thought I'd|wanted to}} {{send|shoot}} over {{some|a bit}} more {{info|information}} on {{how we work|how we can help you|what we can do to help you}} over at {company_name}.
 
-End with: "Happy to hop on a call if this sounds useful - if not, all good!"
+Then give specific information on how our ai solutions can help. Here is a spintext example of how that would look:
 
-60-80 words. NO signatures. NO subject lines. NO names like "Best" or "Sincerely". ONLY the email body text.
+– {{Custom AI chatbots|GPT-based automation|AI assistant creation}} - {company_name}'s {{knowledge base|unique knowledge}} {{fed to|wrapped in}} an {{AI|OpenAI}} chat interface
+– {{Lead reactivation|Database follow-ups|Old lead outreach}} - {{AI-generated|AI-based}} {{text|SMS}} messages, {{designed|made}} to {{book appointments|make appointments}}
+– {{Sales process automation|Automated follow-ups and scheduling|Automated lead generation}} - automate your entire {{lead|sales|selling}} cycle from {{"who?"|cold}} to {{"I'll take it"|ready to buy}}
+
+End all emails with a spun version of this:
+
+If {{you're interested|that sounds good|you want more info}}, let's {{schedule|get on|set up}} a quick {{call|meeting|Zoom call}} and I {{will show you everything|can show you how it works|will show you the magic}}. If not, {{all good|no problem|no worries}}.
 """
         
         system_prompt_followup1 = """
-You are an AI automation expert. Write ONLY the email body text with no subject line, no signatures, no names, no formal closings.
-Intelligently analyze the prospect's industry and recommend specific AI services.
-Think like a business consultant. Be specific and industry-relevant, not generic.
-Show you understand their industry. Be conversational and authentic.
-CRITICAL: Do not include subject lines, signatures, "Best," "Sincerely," or any names.
+Write a follow-up email using the spintext format shown. 
+
+CRITICAL: When you see {{option1|option2|option3}} anywhere in the user prompt, you MUST replace it with ONE randomly chosen option. Do NOT include the {{}} brackets in your response. The brackets are instructions for you, not part of the email text.
+
+Do not add any extra closings or signatures beyond what the user prompt specifies.
 """
         
         rate_limited_api_call()
@@ -230,7 +254,7 @@ Start with: "{first_name}, one more try?"
 
 Say you'll assume they're not interested if you don't hear back and will leave them alone. Add some humor like "you probably deserve a break from the grind."
 
-End with a short playful P.S.
+End with: "If not, all good!" or "If not, no problem!"
 
 50-70 words. NO signatures.
 """
@@ -240,7 +264,7 @@ End with a short playful P.S.
         completion_followup2 = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You are writing a final follow-up email. Follow the exact format provided. Add humor and personality. NO signatures."},
+                {"role": "system", "content": "You are writing a final follow-up email. Follow the exact format provided. Add humor and personality. NO signatures. SPAM WORD RESTRICTIONS - NEVER use: 100% free, make money, earn extra cash, guaranteed, million dollars, free gift, financial freedom, risk-free, incredible deal, once in a lifetime, act now, click here, get it now, urgent, limited time, order now, while supplies last, do it today, take action, don't delete, no catch, no hidden fees, no credit check, meet singles, multi-level marketing, social security number, weight loss, this isn't spam, unsolicited, hidden charges, cheap, bonus, cash, discount, pre-approved, clearance, bargain, income, loans, rates."},
                 {"role": "user", "content": user_prompt_followup2}
             ],
             temperature=0.8,
@@ -354,29 +378,21 @@ def process_single_email_direct(row_data, row_index, job_id):
         first_name = cleaned_data.get('first_name') or cleaned_data.get('name', 'there')
         
         user_prompt = f"""
-Write a natural, conversational cold email using this contact information:
+Write a personalized cold email using this contact information:
 ---
 {prospect_info}
 ---
-Write like you're a real person reaching out - natural, authentic, non-promotional tone.
-Key guidelines:
-- Start casually: "Hey {first_name}", "Hi {first_name}", "{first_name}, hope you're well"
-- Mention you work with AI automation in a casual way.
-- Reference their specific situation when possible.
-- Keep it conversational and authentic.
-- End with EXACTLY these words: "If you're open to a chat, let me know - if not, all good." Use this exact phrase, no variations.
-- Use proper spacing with blank lines between paragraphs for readability.
-- NO signatures, names, or formal closings.
-- 50-70 words max.
-Make each email sound completely different - vary greetings, structure, tone, and phrasing naturally.
+
+Start with "Hey [first_name]," and mention you work with AI automation. Reference their company and/or industry specifically. Keep it conversational and authentic. End with "If you're open to a chat, let me know - if not, all good."
+
+NO signatures, names, or formal closings. 50-80 words max.
 """
         
         system_prompt = """
-You are writing a cold email. Write ONLY the email body text with NO subject line, NO signatures, NO names, NO formal closings.
-Write FROM a person who works in "AI automation" TO that prospect.
-Follow all formatting rules. Be confident and direct. Avoid spam trigger words.
+You are writing a personalized cold email. Write ONLY the email body text with NO subject line, NO signatures, NO names, NO formal closings.
+Be specific about their company/industry. Be conversational and direct.
 CRITICAL: Do not include "Subject:", "Best,", "Cheers,", "[Your Name]", or any signatures.
-MANDATORY: End with EXACTLY these words: "If you're open to a chat, let me know - if not, all good." No variations allowed.
+MANDATORY: End with EXACTLY "If you're open to a chat, let me know - if not, all good."
 """
         
         rate_limited_api_call()
@@ -449,8 +465,32 @@ def process_spreadsheet_task(self, file_path, job_id, mode="single"):
                 failed_count += 1
                 continue
         
-        # Save results
-        results_df = pd.DataFrame(results)
+        # Save results - preserve original columns and add email columns
+        if results:
+            # Create a list to hold flattened results
+            flattened_results = []
+            
+            for result in results:
+                # Start with the original row data
+                flattened_row = result["row_data"].copy()
+                
+                # Add the email columns and metadata
+                if mode == "sequence":
+                    flattened_row["initial_email"] = result.get("initial_email", "")
+                    flattened_row["followup_1"] = result.get("followup_1", "")  
+                    flattened_row["followup_2"] = result.get("followup_2", "")
+                else:
+                    flattened_row["generated_email"] = result.get("email", "")
+                
+                flattened_row["status"] = result.get("status", "")
+                flattened_row["model_used"] = result.get("model_used", "")
+                
+                flattened_results.append(flattened_row)
+            
+            results_df = pd.DataFrame(flattened_results)
+        else:
+            results_df = pd.DataFrame()
+            
         output_path = f"uploads/result_{job_id}.xlsx"
         results_df.to_excel(output_path, index=False)
         
