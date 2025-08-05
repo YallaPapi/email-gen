@@ -143,52 +143,644 @@ def generate_email_sequence_for_row_direct(row_data, row_index, job_id):
         model = model_assigner.get_worker_model()
         
         # STEP 1: Generate initial email - USER'S EXACT PROMPT
-        user_prompt_initial = f"""
-Contact info:
----
-{prospect_info}
----
-Rules:
-If the fields organization_short_description and industry have data in them, then use that data to create a personalized response that shows an understanding of the common problems in their industry. Then provide an example of how AI can help solve those problems. Use literal language. Make each email significantly personalized and vary your language. 
+        # Check if we have rich data or need template
+        org_desc = cleaned_data.get('organization_short_description', '')
+        
+        # Create industry guidance dictionary for all 140 industries
+        industry_guidance = {
+            "accounting": {
+                "pain_points": ["manual data entry and bookkeeping", "tax compliance tracking", "client invoice management", "financial reporting delays"],
+                "solutions": ["Automated bookkeeping that categorizes expenses", "Tax compliance AI that tracks deadlines", "Invoice processing automation", "Financial reporting AI", "AI lead generation for new clients", "Sales automation for service upselling", "Customer service chatbots for client questions"]
+            },
+            "airlines/aviation": {
+                "pain_points": ["flight scheduling optimization", "maintenance tracking", "passenger service delays", "fuel cost management"],
+                "solutions": ["Flight scheduling AI that optimizes routes", "Predictive maintenance systems", "Passenger service automation", "Fuel optimization algorithms", "AI lead generation for corporate travel", "Sales automation for booking follow-ups", "Customer service chatbots for flight inquiries"]
+            },
+            "alternative_dispute_resolution": {
+                "pain_points": ["case scheduling conflicts", "document review time", "client communication gaps", "settlement tracking"],
+                "solutions": ["Case scheduling automation", "Document analysis AI for faster review", "Client communication automation", "Settlement tracking systems", "AI lead generation for legal clients", "Sales automation for case follow-ups", "Customer service chatbots for case updates"]
+            },
+            "alternative_medicine": {
+                "pain_points": ["patient appointment scheduling", "treatment plan tracking", "insurance claim processing", "patient follow-up management"],
+                "solutions": ["Appointment scheduling automation", "Treatment tracking AI systems", "Insurance claim processing automation", "Patient follow-up automation", "AI lead generation for new patients", "Sales automation for treatment packages", "Customer service chatbots for patient inquiries"]
+            },
+            "animation": {
+                "pain_points": ["project timeline management", "client revision tracking", "asset organization", "team collaboration issues"],
+                "solutions": ["Project management AI for animation timelines", "Revision tracking automation", "Asset management systems with AI tagging", "Team collaboration tools", "AI lead generation for animation projects", "Sales automation for client follow-ups", "Customer service chatbots for project updates"]
+            },
+            "apparel_and_fashion": {
+                "pain_points": ["inventory management", "trend forecasting", "supply chain delays", "customer size recommendations"],
+                "solutions": ["AI inventory management that predicts fashion trends", "Trend forecasting algorithms", "Supply chain optimization", "Size recommendation AI", "AI lead generation for fashion brands", "Sales automation for seasonal campaigns", "Customer service chatbots for sizing help"]
+            },
+            "architecture_and_planning": {
+                "pain_points": ["project design revisions", "permit tracking", "client approval delays", "construction timeline coordination"],
+                "solutions": ["Design revision automation", "Permit tracking AI systems", "Client approval workflow automation", "Construction timeline optimization", "AI lead generation for architectural projects", "Sales automation for project follow-ups", "Customer service chatbots for project status"]
+            },
+            "arts_and_crafts": {
+                "pain_points": ["inventory tracking for supplies", "custom order management", "pricing calculations", "seasonal demand planning"],
+                "solutions": ["Supply inventory AI management", "Custom order tracking automation", "Dynamic pricing algorithms", "Demand forecasting for seasonal items", "AI lead generation for craft customers", "Sales automation for repeat buyers", "Customer service chatbots for custom orders"]
+            },
+            "automotive": {
+                "pain_points": ["inventory management for parts", "service scheduling", "warranty tracking", "customer service delays"],
+                "solutions": ["Parts inventory AI optimization", "Service scheduling automation", "Warranty tracking systems", "Customer service automation", "AI lead generation for automotive services", "Sales automation for service packages", "Customer service chatbots for appointment booking"]
+            },
+            "aviation_and_aerospace": {
+                "pain_points": ["maintenance scheduling", "compliance tracking", "supply chain management", "safety documentation"],
+                "solutions": ["Predictive maintenance AI systems", "Compliance tracking automation", "Supply chain optimization", "Safety documentation automation", "AI lead generation for aerospace contracts", "Sales automation for B2B follow-ups", "Customer service chatbots for technical inquiries"]
+            },
+            "banking": {
+                "pain_points": ["loan processing delays", "fraud detection", "customer service wait times", "regulatory compliance"],
+                "solutions": ["Loan processing automation", "AI fraud detection systems", "Customer service chatbots for banking", "Compliance tracking automation", "AI lead generation for banking services", "Sales automation for financial products", "Customer service chatbots for account inquiries"]
+            },
+            "biotechnology": {
+                "pain_points": ["research data management", "regulatory compliance", "clinical trial tracking", "patent research"],
+                "solutions": ["Research data AI analysis", "Regulatory compliance automation", "Clinical trial management systems", "Patent research automation", "AI lead generation for biotech partnerships", "Sales automation for research collaborations", "Customer service chatbots for technical support"]
+            },
+            "broadcast_media": {
+                "pain_points": ["content scheduling", "audience engagement tracking", "ad placement optimization", "content creation workflows"],
+                "solutions": ["Content scheduling automation", "Audience analytics AI", "Ad placement optimization algorithms", "Content workflow automation", "AI lead generation for media advertising", "Sales automation for ad packages", "Customer service chatbots for viewer inquiries"]
+            },
+            "building_materials": {
+                "pain_points": ["inventory management", "supply chain delays", "price fluctuation tracking", "contractor relationship management"],
+                "solutions": ["Inventory AI optimization", "Supply chain tracking automation", "Price monitoring systems", "Contractor CRM automation", "AI lead generation for construction projects", "Sales automation for bulk orders", "Customer service chatbots for product inquiries"]
+            },
+            "business_supplies_and_equipment": {
+                "pain_points": ["inventory tracking", "bulk order management", "client reorder scheduling", "equipment maintenance tracking"],
+                "solutions": ["Inventory management AI", "Bulk order processing automation", "Reorder scheduling systems", "Equipment maintenance tracking", "AI lead generation for business clients", "Sales automation for repeat orders", "Customer service chatbots for product support"]
+            },
+            "capital_markets": {
+                "pain_points": ["market analysis delays", "risk assessment", "client portfolio management", "regulatory reporting"],
+                "solutions": ["AI market analysis systems", "Risk assessment automation", "Portfolio management AI", "Regulatory reporting automation", "AI lead generation for investment clients", "Sales automation for financial services", "Customer service chatbots for market inquiries"]
+            },
+            "chemicals": {
+                "pain_points": ["safety compliance tracking", "inventory management", "quality control testing", "supply chain optimization"],
+                "solutions": ["Safety compliance automation", "Chemical inventory AI management", "Quality control automation", "Supply chain optimization", "AI lead generation for chemical buyers", "Sales automation for bulk orders", "Customer service chatbots for technical support"]
+            },
+            "civic_and_social_organization": {
+                "pain_points": ["volunteer coordination", "donation tracking", "event planning", "community engagement"],
+                "solutions": ["Volunteer scheduling automation", "Donation tracking AI", "Event planning automation", "Community engagement analytics", "AI lead generation for volunteers", "Sales automation for fundraising", "Customer service chatbots for community questions"]
+            },
+            "civil_engineering": {
+                "pain_points": ["project planning delays", "permit tracking", "safety compliance", "resource allocation"],
+                "solutions": ["Project planning AI optimization", "Permit tracking automation", "Safety compliance monitoring", "Resource allocation algorithms", "AI lead generation for engineering projects", "Sales automation for project proposals", "Customer service chatbots for project updates"]
+            },
+            "commercial_real_estate": {
+                "pain_points": ["property listing management", "tenant screening", "lease tracking", "market analysis"],
+                "solutions": ["Property listing automation", "Tenant screening AI", "Lease management systems", "Market analysis automation", "AI lead generation for property leads", "Sales automation for lease follow-ups", "Customer service chatbots for property inquiries"]
+            },
+            "computer_and_network_security": {
+                "pain_points": ["threat detection delays", "incident response time", "compliance reporting", "security audit tracking"],
+                "solutions": ["AI threat detection systems", "Automated incident response", "Compliance reporting automation", "Security audit tracking", "AI lead generation for security clients", "Sales automation for security services", "Customer service chatbots for security alerts"]
+            },
+            "computer_games": {
+                "pain_points": ["player behavior analysis", "game testing automation", "community management", "monetization optimization"],
+                "solutions": ["Player analytics AI", "Automated game testing", "Community management automation", "Monetization optimization algorithms", "AI lead generation for gaming partnerships", "Sales automation for in-game purchases", "Customer service chatbots for player support"]
+            },
+            "computer_hardware": {
+                "pain_points": ["inventory management", "quality control testing", "supply chain delays", "technical support volume"],
+                "solutions": ["Hardware inventory AI", "Quality control automation", "Supply chain optimization", "Technical support automation", "AI lead generation for hardware sales", "Sales automation for enterprise clients", "Customer service chatbots for technical support"]
+            },
+            "computer_networking": {
+                "pain_points": ["network monitoring", "troubleshooting delays", "capacity planning", "security management"],
+                "solutions": ["Network monitoring AI", "Automated troubleshooting systems", "Capacity planning algorithms", "Security management automation", "AI lead generation for networking clients", "Sales automation for network upgrades", "Customer service chatbots for network issues"]
+            },
+            "construction": {
+                "pain_points": ["project delays and cost overruns", "safety compliance tracking", "crew scheduling conflicts", "material waste and inventory"],
+                "solutions": ["Project management AI that tracks progress and predicts delays", "Safety compliance automation and reporting", "Crew scheduling optimization based on project needs", "Material management AI that reduces waste", "AI lead generation for new projects", "Sales automation for client follow-ups", "Customer service chatbots for project updates"]
+            },
+            "consumer_electronics": {
+                "pain_points": ["inventory management", "product lifecycle tracking", "customer support volume", "return processing"],
+                "solutions": ["Electronics inventory AI", "Product lifecycle management", "Customer support automation", "Return processing automation", "AI lead generation for electronics sales", "Sales automation for product launches", "Customer service chatbots for product support"]
+            },
+            "consumer_goods": {
+                "pain_points": ["demand forecasting", "inventory optimization", "supply chain management", "customer feedback analysis"],
+                "solutions": ["Demand forecasting AI", "Inventory optimization algorithms", "Supply chain automation", "Customer feedback analysis", "AI lead generation for retail partners", "Sales automation for consumer campaigns", "Customer service chatbots for product inquiries"]
+            },
+            "consumer_services": {
+                "pain_points": ["appointment scheduling", "customer service delays", "service quality tracking", "billing automation"],
+                "solutions": ["Appointment scheduling automation", "Customer service AI", "Service quality monitoring", "Billing automation systems", "AI lead generation for service clients", "Sales automation for service packages", "Customer service chatbots for service inquiries"]
+            },
+            "cosmetics": {
+                "pain_points": ["inventory management", "trend forecasting", "customer skin analysis", "product recommendation"],
+                "solutions": ["Cosmetics inventory AI", "Beauty trend forecasting", "Skin analysis AI", "Product recommendation systems", "AI lead generation for beauty customers", "Sales automation for cosmetic campaigns", "Customer service chatbots for beauty advice"]
+            },
+            "dairy": {
+                "pain_points": ["milk production tracking", "quality control testing", "supply chain management", "inventory freshness"],
+                "solutions": ["Production tracking AI", "Quality control automation", "Supply chain optimization", "Freshness monitoring systems", "AI lead generation for dairy distributors", "Sales automation for bulk orders", "Customer service chatbots for product freshness"]
+            },
+            "defense_and_space": {
+                "pain_points": ["project security compliance", "resource allocation", "maintenance scheduling", "mission planning"],
+                "solutions": ["Security compliance automation", "Resource allocation AI", "Predictive maintenance systems", "Mission planning optimization", "AI lead generation for defense contracts", "Sales automation for government proposals", "Customer service chatbots for technical specifications"]
+            },
+            "design": {
+                "pain_points": ["project timeline management", "client revision tracking", "asset organization", "team collaboration"],
+                "solutions": ["Design project management AI", "Revision tracking automation", "Asset management with AI tagging", "Collaboration workflow automation", "AI lead generation for design clients", "Sales automation for design services", "Customer service chatbots for project status"]
+            },
+            "e-learning": {
+                "pain_points": ["student engagement tracking", "content personalization", "assessment automation", "progress monitoring"],
+                "solutions": ["Student engagement analytics", "AI content personalization", "Automated assessment systems", "Progress tracking AI", "AI lead generation for educational institutions", "Sales automation for course enrollment", "Customer service chatbots for student support"]
+            },
+            "education_management": {
+                "pain_points": ["student enrollment tracking", "staff scheduling", "curriculum planning", "performance analytics"],
+                "solutions": ["Enrollment management AI", "Staff scheduling automation", "Curriculum planning systems", "Performance analytics AI", "AI lead generation for educational services", "Sales automation for program enrollment", "Customer service chatbots for student inquiries"]
+            },
+            "electrical/electronic_manufacturing": {
+                "pain_points": ["quality control testing", "production line optimization", "inventory management", "defect detection"],
+                "solutions": ["Quality control automation", "Production optimization AI", "Manufacturing inventory management", "AI defect detection systems", "AI lead generation for manufacturing clients", "Sales automation for bulk orders", "Customer service chatbots for technical specifications"]
+            },
+            "entertainment": {
+                "pain_points": ["content scheduling", "audience engagement", "talent management", "revenue optimization"],
+                "solutions": ["Content scheduling automation", "Audience analytics AI", "Talent management systems", "Revenue optimization algorithms", "AI lead generation for entertainment partnerships", "Sales automation for content licensing", "Customer service chatbots for audience inquiries"]
+            },
+            "environmental_services": {
+                "pain_points": ["compliance tracking", "waste management optimization", "environmental monitoring", "reporting automation"],
+                "solutions": ["Environmental compliance AI", "Waste optimization algorithms", "Environmental monitoring automation", "Reporting systems automation", "AI lead generation for environmental clients", "Sales automation for compliance services", "Customer service chatbots for environmental inquiries"]
+            },
+            "events_services": {
+                "pain_points": ["event planning coordination", "vendor management", "attendee tracking", "budget management"],
+                "solutions": ["Event planning automation", "Vendor management AI", "Attendee tracking systems", "Budget optimization algorithms", "AI lead generation for event clients", "Sales automation for event packages", "Customer service chatbots for event inquiries"]
+            },
+            "executive_office": {
+                "pain_points": ["meeting scheduling", "document management", "communication coordination", "decision support"],
+                "solutions": ["Meeting scheduling automation", "Document management AI", "Communication workflow automation", "Decision support systems", "AI lead generation for executive services", "Sales automation for business services", "Customer service chatbots for administrative support"]
+            },
+            "facilities_services": {
+                "pain_points": ["maintenance scheduling", "space utilization", "vendor coordination", "cost optimization"],
+                "solutions": ["Maintenance scheduling AI", "Space utilization analytics", "Vendor coordination automation", "Cost optimization algorithms", "AI lead generation for facilities clients", "Sales automation for service contracts", "Customer service chatbots for facility requests"]
+            },
+            "farming": {
+                "pain_points": ["crop yield optimization", "weather monitoring", "equipment maintenance", "market price tracking"],
+                "solutions": ["Crop optimization AI", "Weather prediction systems", "Equipment maintenance automation", "Market price monitoring", "AI lead generation for agricultural buyers", "Sales automation for crop sales", "Customer service chatbots for farming inquiries"]
+            },
+            "financial_services": {
+                "pain_points": ["client onboarding delays", "risk assessment", "portfolio management", "regulatory compliance"],
+                "solutions": ["Client onboarding automation", "AI risk assessment", "Portfolio management systems", "Compliance tracking automation", "AI lead generation for financial clients", "Sales automation for financial products", "Customer service chatbots for account inquiries"]
+            },
+            "fine_art": {
+                "pain_points": ["artwork cataloging", "auction management", "authentication verification", "client relationship management"],
+                "solutions": ["Artwork cataloging AI", "Auction management automation", "Authentication AI systems", "Art client CRM", "AI lead generation for art collectors", "Sales automation for art sales", "Customer service chatbots for art inquiries"]
+            },
+            "fishery": {
+                "pain_points": ["catch tracking", "quality control", "supply chain management", "regulatory compliance"],
+                "solutions": ["Catch tracking automation", "Quality control AI", "Supply chain optimization", "Compliance monitoring systems", "AI lead generation for seafood buyers", "Sales automation for fish sales", "Customer service chatbots for freshness inquiries"]
+            },
+            "food_and_beverages": {
+                "pain_points": ["inventory management", "quality control", "supply chain delays", "customer preference tracking"],
+                "solutions": ["Food inventory AI", "Quality control automation", "Supply chain optimization", "Customer preference analytics", "AI lead generation for food distributors", "Sales automation for food products", "Customer service chatbots for product information"]
+            },
+            "food_production": {
+                "pain_points": ["production line optimization", "quality control testing", "inventory management", "safety compliance"],
+                "solutions": ["Production optimization AI", "Quality control automation", "Production inventory management", "Safety compliance monitoring", "AI lead generation for food buyers", "Sales automation for bulk food orders", "Customer service chatbots for production inquiries"]
+            },
+            "fund-raising": {
+                "pain_points": ["donor tracking", "campaign management", "event coordination", "impact measurement"],
+                "solutions": ["Donor management AI", "Campaign automation systems", "Event planning automation", "Impact analytics", "AI lead generation for donors", "Sales automation for fundraising campaigns", "Customer service chatbots for donor inquiries"]
+            },
+            "furniture": {
+                "pain_points": ["inventory management", "custom order tracking", "delivery scheduling", "customer design preferences"],
+                "solutions": ["Furniture inventory AI", "Custom order management", "Delivery optimization", "Design preference analytics", "AI lead generation for furniture customers", "Sales automation for furniture sales", "Customer service chatbots for design consultations"]
+            },
+            "gambling_and_casinos": {
+                "pain_points": ["player behavior analysis", "security monitoring", "revenue optimization", "customer service management"],
+                "solutions": ["Player analytics AI", "Security monitoring automation", "Revenue optimization algorithms", "Customer service automation", "AI lead generation for casino marketing", "Sales automation for player retention", "Customer service chatbots for player support"]
+            },
+            "glass_ceramics_and_concrete": {
+                "pain_points": ["quality control testing", "production optimization", "inventory management", "order fulfillment"],
+                "solutions": ["Quality control automation", "Production optimization AI", "Materials inventory management", "Order fulfillment automation", "AI lead generation for construction clients", "Sales automation for bulk orders", "Customer service chatbots for material specifications"]
+            },
+            "government_administration": {
+                "pain_points": ["citizen service delays", "document processing", "compliance tracking", "resource allocation"],
+                "solutions": ["Citizen service automation", "Document processing AI", "Compliance monitoring systems", "Resource allocation optimization", "AI lead generation for government services", "Sales automation for civic engagement", "Customer service chatbots for citizen inquiries"]
+            },
+            "government_relations": {
+                "pain_points": ["policy tracking", "stakeholder communication", "compliance monitoring", "reporting automation"],
+                "solutions": ["Policy tracking AI", "Stakeholder communication automation", "Compliance monitoring systems", "Government reporting automation", "AI lead generation for policy clients", "Sales automation for government services", "Customer service chatbots for policy inquiries"]
+            },
+            "graphic_design": {
+                "pain_points": ["project timeline management", "client revision tracking", "asset organization", "creative workflow"],
+                "solutions": ["Design project management", "Revision tracking automation", "Asset management AI", "Creative workflow optimization", "AI lead generation for design clients", "Sales automation for design services", "Customer service chatbots for project updates"]
+            },
+            "health_wellness_and_fitness": {
+                "pain_points": ["member engagement tracking", "class scheduling", "equipment maintenance", "progress monitoring"],
+                "solutions": ["Member engagement analytics", "Class scheduling automation", "Equipment maintenance tracking", "Fitness progress AI", "AI lead generation for fitness members", "Sales automation for membership sales", "Customer service chatbots for fitness questions"]
+            },
+            "higher_education": {
+                "pain_points": ["student enrollment management", "course scheduling", "academic performance tracking", "research coordination"],
+                "solutions": ["Enrollment management AI", "Course scheduling automation", "Academic analytics", "Research coordination systems", "AI lead generation for student recruitment", "Sales automation for program enrollment", "Customer service chatbots for student services"]
+            },
+            "hospital_and_health_care": {
+                "pain_points": ["patient scheduling", "medical record management", "staff scheduling", "insurance processing"],
+                "solutions": ["Patient scheduling automation", "Medical record AI", "Healthcare staff scheduling", "Insurance processing automation", "AI lead generation for patient acquisition", "Sales automation for healthcare services", "Customer service chatbots for patient inquiries"]
+            },
+            "hospitality": {
+                "pain_points": ["reservation management", "guest service coordination", "housekeeping scheduling", "revenue optimization"],
+                "solutions": ["Reservation management AI", "Guest service automation", "Housekeeping scheduling optimization", "Revenue management systems", "AI lead generation for hotel bookings", "Sales automation for guest services", "Customer service chatbots for hotel inquiries"]
+            },
+            "human_resources": {
+                "pain_points": ["recruitment screening", "employee onboarding", "performance tracking", "benefits administration"],
+                "solutions": ["AI recruitment screening", "Onboarding automation", "Performance analytics", "Benefits administration automation", "AI lead generation for HR services", "Sales automation for HR solutions", "Customer service chatbots for employee questions"]
+            },
+            "import_and_export": {
+                "pain_points": ["customs documentation", "shipment tracking", "compliance management", "inventory coordination"],
+                "solutions": ["Customs documentation automation", "Shipment tracking AI", "Trade compliance systems", "Import/export inventory management", "AI lead generation for trade partners", "Sales automation for import/export services", "Customer service chatbots for shipment inquiries"]
+            },
+            "individual_and_family_services": {
+                "pain_points": ["client case management", "service coordination", "appointment scheduling", "outcome tracking"],
+                "solutions": ["Case management AI", "Service coordination automation", "Appointment scheduling systems", "Outcome tracking analytics", "AI lead generation for family services", "Sales automation for service programs", "Customer service chatbots for family support"]
+            },
+            "industrial_automation": {
+                "pain_points": ["production line optimization", "equipment monitoring", "quality control", "maintenance scheduling"],
+                "solutions": ["Production optimization AI", "Equipment monitoring automation", "Quality control systems", "Predictive maintenance", "AI lead generation for industrial clients", "Sales automation for automation solutions", "Customer service chatbots for technical support"]
+            },
+            "information_services": {
+                "pain_points": ["data processing delays", "information accuracy", "client request management", "research automation"],
+                "solutions": ["Data processing automation", "Information accuracy AI", "Request management systems", "Research automation tools", "AI lead generation for information clients", "Sales automation for data services", "Customer service chatbots for information requests"]
+            },
+            "information_technology_and_services": {
+                "pain_points": ["system maintenance", "security monitoring", "client support tickets", "project management"],
+                "solutions": ["System maintenance automation", "Security monitoring AI", "Support ticket automation", "IT project management", "AI lead generation for IT clients", "Sales automation for IT services", "Customer service chatbots for technical support"]
+            },
+            "insurance": {
+                "pain_points": ["claims processing delays", "risk assessment", "policy management", "fraud detection"],
+                "solutions": ["Claims processing automation", "AI risk assessment", "Policy management systems", "Fraud detection AI", "AI lead generation for insurance clients", "Sales automation for policy sales", "Customer service chatbots for policy inquiries"]
+            },
+            "international_affairs": {
+                "pain_points": ["diplomatic communication", "treaty tracking", "cultural coordination", "international compliance"],
+                "solutions": ["Diplomatic communication automation", "Treaty tracking systems", "Cultural coordination AI", "International compliance monitoring", "AI lead generation for international partnerships", "Sales automation for diplomatic services", "Customer service chatbots for international inquiries"]
+            },
+            "international_trade_and_development": {
+                "pain_points": ["trade compliance", "development project tracking", "partner coordination", "impact measurement"],
+                "solutions": ["Trade compliance automation", "Project tracking systems", "Partner coordination AI", "Development impact analytics", "AI lead generation for trade partners", "Sales automation for development projects", "Customer service chatbots for trade inquiries"]
+            },
+            "internet": {
+                "pain_points": ["website performance optimization", "user engagement tracking", "content management", "security monitoring"],
+                "solutions": ["Website optimization AI", "User analytics systems", "Content management automation", "Web security monitoring", "AI lead generation for web services", "Sales automation for internet solutions", "Customer service chatbots for web support"]
+            },
+            "investment_banking": {
+                "pain_points": ["deal pipeline management", "risk analysis", "client relationship tracking", "regulatory compliance"],
+                "solutions": ["Deal pipeline AI", "Risk analysis automation", "Client relationship management", "Investment compliance tracking", "AI lead generation for investment clients", "Sales automation for banking services", "Customer service chatbots for investment inquiries"]
+            },
+            "investment_management": {
+                "pain_points": ["portfolio optimization", "risk assessment", "client reporting", "market analysis"],
+                "solutions": ["Portfolio optimization AI", "Risk assessment automation", "Client reporting systems", "Market analysis AI", "AI lead generation for investment clients", "Sales automation for portfolio services", "Customer service chatbots for investment questions"]
+            },
+            "law_enforcement": {
+                "pain_points": ["case management", "evidence tracking", "resource allocation", "community engagement"],
+                "solutions": ["Case management AI", "Evidence tracking automation", "Resource allocation optimization", "Community engagement systems", "AI lead generation for law enforcement technology", "Sales automation for security services", "Customer service chatbots for public safety inquiries"]
+            },
+            "law_practice": {
+                "pain_points": ["document review bottlenecks", "manual billing processes", "client intake inefficiencies", "case research time consumption"],
+                "solutions": ["Document automation AI for contracts and legal research", "Automated billing and time tracking systems", "Client intake AI that qualifies leads", "Case management automation with deadline tracking", "AI lead generation for new clients", "Sales automation for follow-ups", "Customer service chatbots for client questions"]
+            },
+            "legal_services": {
+                "pain_points": ["document preparation", "client consultation scheduling", "billing automation", "case tracking"],
+                "solutions": ["Document preparation automation", "Consultation scheduling AI", "Legal billing automation", "Case tracking systems", "AI lead generation for legal clients", "Sales automation for legal services", "Customer service chatbots for legal inquiries"]
+            },
+            "legislative_office": {
+                "pain_points": ["constituent communication", "policy research", "meeting scheduling", "voting tracking"],
+                "solutions": ["Constituent communication automation", "Policy research AI", "Legislative scheduling systems", "Voting tracking automation", "AI lead generation for political engagement", "Sales automation for political campaigns", "Customer service chatbots for constituent services"]
+            },
+            "leisure_travel_and_tourism": {
+                "pain_points": ["booking management", "customer experience tracking", "itinerary planning", "seasonal demand forecasting"],
+                "solutions": ["Booking management automation", "Customer experience analytics", "AI itinerary planning", "Tourism demand forecasting", "AI lead generation for travel bookings", "Sales automation for travel packages", "Customer service chatbots for travel inquiries"]
+            },
+            "logistics_and_supply_chain": {
+                "pain_points": ["shipment tracking", "route optimization", "inventory coordination", "delivery scheduling"],
+                "solutions": ["Shipment tracking automation", "Route optimization AI", "Supply chain inventory management", "Delivery scheduling optimization", "AI lead generation for logistics clients", "Sales automation for shipping services", "Customer service chatbots for shipment tracking"]
+            },
+            "luxury_goods_and_jewelry": {
+                "pain_points": ["inventory management", "authentication verification", "customer personalization", "security tracking"],
+                "solutions": ["Luxury inventory AI", "Authentication AI systems", "Customer personalization", "Security tracking automation", "AI lead generation for luxury customers", "Sales automation for high-end sales", "Customer service chatbots for luxury inquiries"]
+            },
+            "machinery": {
+                "pain_points": ["equipment maintenance", "parts inventory", "performance monitoring", "safety compliance"],
+                "solutions": ["Predictive maintenance AI", "Parts inventory optimization", "Performance monitoring automation", "Safety compliance tracking", "AI lead generation for machinery clients", "Sales automation for equipment sales", "Customer service chatbots for machinery support"]
+            },
+            "management_consulting": {
+                "pain_points": ["project timeline management", "client engagement tracking", "knowledge management", "proposal development"],
+                "solutions": ["Consulting project management", "Client engagement analytics", "Knowledge management AI", "Proposal automation systems", "AI lead generation for consulting clients", "Sales automation for consulting services", "Customer service chatbots for project inquiries"]
+            },
+            "maritime": {
+                "pain_points": ["vessel tracking", "cargo management", "route optimization", "safety compliance"],
+                "solutions": ["Vessel tracking automation", "Cargo management AI", "Maritime route optimization", "Safety compliance monitoring", "AI lead generation for maritime clients", "Sales automation for shipping services", "Customer service chatbots for maritime inquiries"]
+            },
+            "market_research": {
+                "pain_points": ["data collection automation", "survey management", "analysis reporting", "client presentation preparation"],
+                "solutions": ["Data collection AI", "Survey automation systems", "Research analysis automation", "Presentation preparation AI", "AI lead generation for research clients", "Sales automation for market research", "Customer service chatbots for research inquiries"]
+            },
+            "marketing_and_advertising": {
+                "pain_points": ["campaign performance tracking", "customer segmentation", "content creation workflows", "ROI measurement"],
+                "solutions": ["Campaign analytics AI", "Customer segmentation automation", "Content creation workflows", "Marketing ROI analytics", "AI lead generation for marketing clients", "Sales automation for advertising services", "Customer service chatbots for campaign inquiries"]
+            },
+            "mechanical_or_industrial_engineering": {
+                "pain_points": ["design optimization", "project management", "quality control", "resource allocation"],
+                "solutions": ["Engineering design optimization", "Engineering project management", "Quality control automation", "Resource allocation AI", "AI lead generation for engineering projects", "Sales automation for engineering services", "Customer service chatbots for technical specifications"]
+            },
+            "media_production": {
+                "pain_points": ["content scheduling", "production workflow", "asset management", "distribution tracking"],
+                "solutions": ["Content scheduling automation", "Production workflow AI", "Media asset management", "Distribution tracking systems", "AI lead generation for media clients", "Sales automation for production services", "Customer service chatbots for media inquiries"]
+            },
+            "medical_devices": {
+                "pain_points": ["regulatory compliance", "quality control testing", "inventory management", "customer training"],
+                "solutions": ["Medical device compliance automation", "Quality control AI", "Medical inventory management", "Training automation systems", "AI lead generation for medical clients", "Sales automation for device sales", "Customer service chatbots for device support"]
+            },
+            "medical_practice": {
+                "pain_points": ["patient scheduling", "medical record management", "insurance processing", "appointment follow-ups"],
+                "solutions": ["Patient scheduling automation", "Medical record AI", "Insurance processing automation", "Appointment follow-up systems", "AI lead generation for patient acquisition", "Sales automation for medical services", "Customer service chatbots for patient inquiries"]
+            },
+            "mental_health_care": {
+                "pain_points": ["patient appointment scheduling", "treatment plan tracking", "insurance claim processing", "crisis intervention coordination"],
+                "solutions": ["Mental health scheduling automation", "Treatment tracking AI", "Insurance claim automation", "Crisis intervention systems", "AI lead generation for mental health patients", "Sales automation for therapy services", "Customer service chatbots for mental health support"]
+            },
+            "military": {
+                "pain_points": ["personnel management", "equipment tracking", "mission planning", "security compliance"],
+                "solutions": ["Personnel management AI", "Equipment tracking automation", "Mission planning systems", "Military security compliance", "AI lead generation for defense contracts", "Sales automation for military services", "Customer service chatbots for military specifications"]
+            },
+            "mining_and_metals": {
+                "pain_points": ["safety monitoring", "equipment maintenance", "production optimization", "environmental compliance"],
+                "solutions": ["Mining safety AI", "Equipment maintenance automation", "Production optimization systems", "Environmental compliance tracking", "AI lead generation for mining clients", "Sales automation for mining equipment", "Customer service chatbots for mining support"]
+            },
+            "museums_and_institutions": {
+                "pain_points": ["visitor engagement", "collection management", "event coordination", "educational program tracking"],
+                "solutions": ["Visitor engagement AI", "Collection management automation", "Event coordination systems", "Educational program tracking", "AI lead generation for museum visitors", "Sales automation for museum programs", "Customer service chatbots for museum inquiries"]
+            },
+            "music": {
+                "pain_points": ["royalty tracking", "distribution management", "fan engagement", "performance scheduling"],
+                "solutions": ["Royalty tracking automation", "Music distribution AI", "Fan engagement analytics", "Performance scheduling systems", "AI lead generation for music promotion", "Sales automation for music sales", "Customer service chatbots for music inquiries"]
+            },
+            "nanotechnology": {
+                "pain_points": ["research data management", "quality control", "regulatory compliance", "production scaling"],
+                "solutions": ["Research data AI", "Nanotechnology quality control", "Regulatory compliance automation", "Production scaling systems", "AI lead generation for nanotech partnerships", "Sales automation for research collaborations", "Customer service chatbots for technical support"]
+            },
+            "nonprofit_organization_management": {
+                "pain_points": ["donor management", "volunteer coordination", "program tracking", "fundraising automation"],
+                "solutions": ["Donor management AI", "Volunteer coordination systems", "Program tracking automation", "Fundraising automation", "AI lead generation for donors", "Sales automation for fundraising campaigns", "Customer service chatbots for nonprofit inquiries"]
+            },
+            "oil_and_energy": {
+                "pain_points": ["production monitoring", "safety compliance", "equipment maintenance", "market price tracking"],
+                "solutions": ["Production monitoring AI", "Energy safety compliance", "Equipment maintenance automation", "Energy market analytics", "AI lead generation for energy clients", "Sales automation for energy services", "Customer service chatbots for energy inquiries"]
+            },
+            "online_media": {
+                "pain_points": ["content management", "audience engagement", "ad revenue optimization", "performance analytics"],
+                "solutions": ["Content management AI", "Audience engagement analytics", "Ad revenue optimization", "Media performance tracking", "AI lead generation for online audiences", "Sales automation for digital advertising", "Customer service chatbots for media support"]
+            },
+            "outsourcing/offshoring": {
+                "pain_points": ["project coordination", "quality assurance", "communication management", "performance tracking"],
+                "solutions": ["Project coordination AI", "Quality assurance automation", "Communication management systems", "Performance tracking analytics", "AI lead generation for outsourcing clients", "Sales automation for outsourcing services", "Customer service chatbots for project updates"]
+            },
+            "package/freight_delivery": {
+                "pain_points": ["route optimization", "package tracking", "delivery scheduling", "customer communication"],
+                "solutions": ["Delivery route optimization", "Package tracking automation", "Delivery scheduling AI", "Customer communication automation", "AI lead generation for shipping clients", "Sales automation for delivery services", "Customer service chatbots for package tracking"]
+            },
+            "packaging_and_containers": {
+                "pain_points": ["inventory management", "production optimization", "quality control", "customer order fulfillment"],
+                "solutions": ["Packaging inventory AI", "Production optimization systems", "Quality control automation", "Order fulfillment automation", "AI lead generation for packaging clients", "Sales automation for packaging sales", "Customer service chatbots for packaging inquiries"]
+            },
+            "paper_and_forest_products": {
+                "pain_points": ["production optimization", "quality control", "supply chain management", "environmental compliance"],
+                "solutions": ["Paper production optimization", "Quality control AI", "Forest supply chain management", "Environmental compliance tracking", "AI lead generation for paper clients", "Sales automation for paper products", "Customer service chatbots for product specifications"]
+            },
+            "performing_arts": {
+                "pain_points": ["performance scheduling", "ticket sales management", "artist coordination", "venue optimization"],
+                "solutions": ["Performance scheduling automation", "Ticket sales AI", "Artist coordination systems", "Venue optimization algorithms", "AI lead generation for performing arts audiences", "Sales automation for ticket sales", "Customer service chatbots for performance inquiries"]
+            },
+            "pharmaceuticals": {
+                "pain_points": ["drug development tracking", "regulatory compliance", "quality control", "supply chain management"],
+                "solutions": ["Drug development AI", "Pharmaceutical compliance automation", "Quality control systems", "Pharma supply chain optimization", "AI lead generation for pharmaceutical partnerships", "Sales automation for drug sales", "Customer service chatbots for pharmaceutical inquiries"]
+            },
+            "philanthropy": {
+                "pain_points": ["donor relationship management", "grant tracking", "impact measurement", "fundraising coordination"],
+                "solutions": ["Donor relationship AI", "Grant tracking automation", "Impact measurement systems", "Fundraising coordination", "AI lead generation for philanthropic donors", "Sales automation for charitable giving", "Customer service chatbots for philanthropy inquiries"]
+            },
+            "photography": {
+                "pain_points": ["client booking management", "image organization", "editing workflow", "portfolio management"],
+                "solutions": ["Photography booking automation", "Image organization AI", "Editing workflow optimization", "Portfolio management systems", "AI lead generation for photography clients", "Sales automation for photography services", "Customer service chatbots for booking inquiries"]
+            },
+            "plastics": {
+                "pain_points": ["production optimization", "quality control", "inventory management", "environmental compliance"],
+                "solutions": ["Plastics production optimization", "Quality control automation", "Plastics inventory management", "Environmental compliance tracking", "AI lead generation for plastics clients", "Sales automation for plastic products", "Customer service chatbots for product specifications"]
+            },
+            "political_organization": {
+                "pain_points": ["voter outreach", "campaign management", "fundraising coordination", "policy tracking"],
+                "solutions": ["Voter outreach automation", "Campaign management AI", "Political fundraising systems", "Policy tracking automation", "AI lead generation for political engagement", "Sales automation for political campaigns", "Customer service chatbots for political inquiries"]
+            },
+            "primary/secondary_education": {
+                "pain_points": ["student performance tracking", "parent communication", "curriculum planning", "administrative tasks"],
+                "solutions": ["Student performance analytics", "Parent communication automation", "Curriculum planning AI", "Administrative task automation", "AI lead generation for educational programs", "Sales automation for school enrollment", "Customer service chatbots for school inquiries"]
+            },
+            "printing": {
+                "pain_points": ["order management", "production scheduling", "quality control", "inventory tracking"],
+                "solutions": ["Print order management", "Production scheduling AI", "Printing quality control", "Print inventory tracking", "AI lead generation for printing clients", "Sales automation for print services", "Customer service chatbots for print orders"]
+            },
+            "professional_training_and_coaching": {
+                "pain_points": ["client progress tracking", "scheduling coordination", "curriculum development", "performance measurement"],
+                "solutions": ["Client progress AI", "Training scheduling automation", "Curriculum development systems", "Performance measurement analytics", "AI lead generation for training clients", "Sales automation for coaching services", "Customer service chatbots for training inquiries"]
+            },
+            "public_policy": {
+                "pain_points": ["policy research", "stakeholder engagement", "impact analysis", "compliance tracking"],
+                "solutions": ["Policy research AI", "Stakeholder engagement automation", "Policy impact analysis", "Compliance tracking systems", "AI lead generation for policy stakeholders", "Sales automation for policy services", "Customer service chatbots for policy inquiries"]
+            },
+            "public_relations_and_communications": {
+                "pain_points": ["media monitoring", "campaign management", "client communication", "crisis management"],
+                "solutions": ["Media monitoring AI", "PR campaign automation", "Client communication systems", "Crisis management automation", "AI lead generation for PR clients", "Sales automation for PR services", "Customer service chatbots for PR inquiries"]
+            },
+            "public_safety": {
+                "pain_points": ["emergency response coordination", "resource allocation", "incident tracking", "community communication"],
+                "solutions": ["Emergency response AI", "Resource allocation optimization", "Incident tracking automation", "Community communication systems", "AI lead generation for safety services", "Sales automation for safety solutions", "Customer service chatbots for safety inquiries"]
+            },
+            "publishing": {
+                "pain_points": ["manuscript management", "distribution coordination", "marketing automation", "royalty tracking"],
+                "solutions": ["Manuscript management AI", "Publishing distribution automation", "Publishing marketing systems", "Royalty tracking automation", "AI lead generation for publishing clients", "Sales automation for book sales", "Customer service chatbots for publishing inquiries"]
+            },
+            "railroad_manufacture": {
+                "pain_points": ["production scheduling", "quality control", "safety compliance", "maintenance tracking"],
+                "solutions": ["Railroad production optimization", "Quality control automation", "Railroad safety compliance", "Maintenance tracking systems", "AI lead generation for railroad clients", "Sales automation for railroad equipment", "Customer service chatbots for railroad support"]
+            },
+            "ranching": {
+                "pain_points": ["livestock tracking", "feed management", "health monitoring", "market price tracking"],
+                "solutions": ["Livestock tracking AI", "Feed management automation", "Animal health monitoring", "Ranching market analytics", "AI lead generation for livestock buyers", "Sales automation for livestock sales", "Customer service chatbots for ranching inquiries"]
+            },
+            "real_estate": {
+                "pain_points": ["property listing management", "client relationship tracking", "market analysis", "transaction coordination"],
+                "solutions": ["Property listing automation", "Real estate CRM", "Market analysis AI", "Transaction coordination systems", "AI lead generation for property leads", "Sales automation for real estate", "Customer service chatbots for property inquiries"]
+            },
+            "recreational_facilities_and_services": {
+                "pain_points": ["facility booking", "member management", "equipment maintenance", "activity scheduling"],
+                "solutions": ["Facility booking automation", "Member management AI", "Equipment maintenance tracking", "Activity scheduling systems", "AI lead generation for recreational members", "Sales automation for facility memberships", "Customer service chatbots for facility inquiries"]
+            },
+            "religious_institutions": {
+                "pain_points": ["member engagement", "event coordination", "donation tracking", "communication management"],
+                "solutions": ["Member engagement analytics", "Religious event coordination", "Donation tracking automation", "Religious communication systems", "AI lead generation for community outreach", "Sales automation for religious programs", "Customer service chatbots for religious inquiries"]
+            },
+            "renewables_and_environment": {
+                "pain_points": ["energy production monitoring", "environmental compliance", "equipment maintenance", "sustainability reporting"],
+                "solutions": ["Renewable energy monitoring", "Environmental compliance automation", "Green equipment maintenance", "Sustainability reporting AI", "AI lead generation for renewable clients", "Sales automation for green energy", "Customer service chatbots for environmental inquiries"]
+            },
+            "research": {
+                "pain_points": ["data collection", "analysis automation", "project coordination", "publication management"],
+                "solutions": ["Research data collection AI", "Analysis automation systems", "Research project coordination", "Publication management automation", "AI lead generation for research partnerships", "Sales automation for research services", "Customer service chatbots for research inquiries"]
+            },
+            "restaurants": {
+                "pain_points": ["inventory waste and food costs", "staff scheduling conflicts", "long wait times during peak hours", "inconsistent customer service"],
+                "solutions": ["AI inventory management that predicts demand and reduces waste", "Smart scheduling that optimizes staff based on predicted traffic", "Kitchen workflow AI that coordinates orders", "Automated customer feedback analysis", "AI lead generation for catering events", "Sales automation for repeat customers", "Customer service chatbots for reservations"]
+            },
+            "retail": {
+                "pain_points": ["inventory management", "customer experience optimization", "sales forecasting", "staff scheduling"],
+                "solutions": ["Retail inventory AI", "Customer experience analytics", "Sales forecasting systems", "Retail staff scheduling", "AI lead generation for retail customers", "Sales automation for retail promotions", "Customer service chatbots for shopping assistance"]
+            },
+            "security_and_investigations": {
+                "pain_points": ["threat detection", "incident response", "client reporting", "surveillance monitoring"],
+                "solutions": ["Threat detection AI", "Incident response automation", "Security reporting systems", "Surveillance monitoring automation", "AI lead generation for security clients", "Sales automation for security services", "Customer service chatbots for security inquiries"]
+            },
+            "semiconductors": {
+                "pain_points": ["production yield optimization", "quality control", "supply chain management", "equipment maintenance"],
+                "solutions": ["Semiconductor production optimization", "Quality control automation", "Semiconductor supply chain management", "Equipment maintenance AI", "AI lead generation for semiconductor clients", "Sales automation for chip sales", "Customer service chatbots for technical specifications"]
+            },
+            "sporting_goods": {
+                "pain_points": ["inventory management", "seasonal demand forecasting", "customer preference tracking", "supply chain coordination"],
+                "solutions": ["Sporting goods inventory AI", "Seasonal demand forecasting", "Customer preference analytics", "Sports supply chain optimization", "AI lead generation for sports customers", "Sales automation for sporting goods", "Customer service chatbots for product recommendations"]
+            },
+            "sports": {
+                "pain_points": ["performance analytics", "fan engagement", "ticket sales management", "facility optimization"],
+                "solutions": ["Sports performance AI", "Fan engagement analytics", "Ticket sales automation", "Sports facility optimization", "AI lead generation for sports fans", "Sales automation for sports marketing", "Customer service chatbots for sports inquiries"]
+            },
+            "staffing_and_recruiting": {
+                "pain_points": ["candidate screening", "client matching", "interview scheduling", "performance tracking"],
+                "solutions": ["AI candidate screening", "Client-candidate matching", "Interview scheduling automation", "Recruiting performance analytics", "AI lead generation for staffing clients", "Sales automation for recruiting services", "Customer service chatbots for staffing inquiries"]
+            },
+            "telecommunications": {
+                "pain_points": ["network monitoring", "customer service volume", "service optimization", "infrastructure maintenance"],
+                "solutions": ["Network monitoring AI", "Telecom customer service automation", "Service optimization systems", "Infrastructure maintenance automation", "AI lead generation for telecom clients", "Sales automation for telecom services", "Customer service chatbots for technical support"]
+            },
+            "textiles": {
+                "pain_points": ["production optimization", "quality control", "inventory management", "supply chain coordination"],
+                "solutions": ["Textile production optimization", "Quality control automation", "Textile inventory management", "Textile supply chain optimization", "AI lead generation for textile clients", "Sales automation for textile sales", "Customer service chatbots for textile inquiries"]
+            },
+            "think_tanks": {
+                "pain_points": ["research coordination", "policy analysis", "publication management", "stakeholder engagement"],
+                "solutions": ["Research coordination AI", "Policy analysis automation", "Publication management systems", "Stakeholder engagement analytics", "AI lead generation for policy stakeholders", "Sales automation for research services", "Customer service chatbots for policy inquiries"]
+            },
+            "tobacco": {
+                "pain_points": ["regulatory compliance", "quality control", "inventory management", "market analysis"],
+                "solutions": ["Tobacco compliance automation", "Quality control systems", "Tobacco inventory management", "Tobacco market analytics", "AI lead generation for tobacco distributors", "Sales automation for tobacco products", "Customer service chatbots for compliance inquiries"]
+            },
+            "translation_and_localization": {
+                "pain_points": ["project management", "quality assurance", "client communication", "resource allocation"],
+                "solutions": ["Translation project management", "Quality assurance automation", "Client communication systems", "Translation resource optimization", "AI lead generation for translation clients", "Sales automation for language services", "Customer service chatbots for translation inquiries"]
+            },
+            "transportation/trucking/railroad": {
+                "pain_points": ["route optimization", "fleet management", "maintenance scheduling", "compliance tracking"],
+                "solutions": ["Transportation route optimization", "Fleet management AI", "Transportation maintenance automation", "Transportation compliance tracking", "AI lead generation for transportation clients", "Sales automation for shipping services", "Customer service chatbots for shipment tracking"]
+            },
+            "utilities": {
+                "pain_points": ["grid management", "customer service", "maintenance scheduling", "regulatory compliance"],
+                "solutions": ["Utility grid management AI", "Utility customer service automation", "Utility maintenance scheduling", "Utility compliance tracking", "AI lead generation for utility customers", "Sales automation for utility services", "Customer service chatbots for utility inquiries"]
+            },
+            "venture_capital_and_private_equity": {
+                "pain_points": ["deal sourcing", "due diligence", "portfolio management", "investor relations"],
+                "solutions": ["Deal sourcing AI", "Due diligence automation", "Portfolio management systems", "Investor relations automation", "AI lead generation for investment opportunities", "Sales automation for fund raising", "Customer service chatbots for investor inquiries"]
+            },
+            "veterinary": {
+                "pain_points": ["appointment scheduling", "medical record management", "inventory management", "client communication"],
+                "solutions": ["Veterinary scheduling automation", "Veterinary medical records", "Veterinary inventory management", "Pet owner communication systems", "AI lead generation for pet owners", "Sales automation for veterinary services", "Customer service chatbots for pet care inquiries"]
+            },
+            "warehousing": {
+                "pain_points": ["inventory tracking", "order fulfillment", "space optimization", "staff scheduling"],
+                "solutions": ["Warehouse inventory AI", "Order fulfillment automation", "Warehouse space optimization", "Warehouse staff scheduling", "AI lead generation for warehousing clients", "Sales automation for warehouse services", "Customer service chatbots for inventory inquiries"]
+            },
+            "wholesale": {
+                "pain_points": ["inventory management", "order processing", "client relationship management", "pricing optimization"],
+                "solutions": ["Wholesale inventory AI", "Order processing automation", "Wholesale CRM systems", "Pricing optimization algorithms", "AI lead generation for wholesale buyers", "Sales automation for wholesale orders", "Customer service chatbots for wholesale inquiries"]
+            },
+            "wine_and_spirits": {
+                "pain_points": ["inventory management", "distribution tracking", "compliance monitoring", "customer preference analysis"],
+                "solutions": ["Wine inventory management", "Distribution tracking automation", "Alcohol compliance monitoring", "Customer preference analytics", "AI lead generation for wine customers", "Sales automation for wine sales", "Customer service chatbots for wine recommendations"]
+            },
+            "wireless": {
+                "pain_points": ["network optimization", "customer service", "device management", "coverage analysis"],
+                "solutions": ["Wireless network optimization", "Wireless customer service automation", "Device management systems", "Coverage analysis AI", "AI lead generation for wireless customers", "Sales automation for wireless services", "Customer service chatbots for wireless support"]
+            },
+            "writing_and_editing": {
+                "pain_points": ["project management", "client communication", "quality control", "deadline tracking"],
+                "solutions": ["Writing project management", "Client communication automation", "Editing quality control", "Deadline tracking systems", "AI lead generation for writing clients", "Sales automation for writing services", "Customer service chatbots for writing inquiries"]
+            }
+        }
+        
+        # Default guidance for industries not in our list
+        default_guidance = {
+            "pain_points": ["manual processes taking too much time", "difficulty tracking leads and customers", "inconsistent follow-up with prospects"],
+            "solutions": ["Process automation that handles repetitive tasks", "CRM automation that tracks all interactions", "Follow-up automation that never misses a lead", "AI lead generation systems", "Sales automation workflows", "Customer service chatbots"]
+        }
+        
+        if pd.notna(industry) and industry.strip() and industry.lower() != 'your industry':
+            # Industry-specific personalized content
+            guidance = industry_guidance.get(industry.lower().replace(' ', '_').replace('&', 'and'), default_guidance)
+            pain_points = ", ".join(guidance["pain_points"][:3])
+            solutions = guidance["solutions"]
+            
+            system_prompt_initial = f"""
+Write a cold email to this prospect in the {industry} industry.
 
-If those fields are blank, then examine organization_name and use your best judgement about the industry and type of business they are in. 
+Most common pain points are: {pain_points}.
 
-End all emails with a spun version of this:
+Here is a list of their most common AI solutions: {", ".join(solutions)}.
 
-If {{you're interested|that sounds good|you want more info}}, let's {{schedule|get on|set up}} a quick {{call|meeting|Zoom call}} and I {{will show you everything|can show you how it works|will show you the magic}}. If not, {{all good|no problem|no worries}}.
+Pick 3 at random, rephrase them in your own words, and suggest them as possible solutions. Be conversational.
 
-Keep it concise but sufficiently personalized
+At the end of each email, tell them: "If this sounds good, let's get on a call. If not, all good."
+"""
+            
+            user_prompt_initial = f"""
+Contact: {first_name} at {company_name}
+Industry: {industry}
+"""
+        else:
+            # Use template format for unknown industries
+            user_prompt_initial = f"""
+Use this exact template format, processing all spintext:
+
+Hey {first_name}, {{{{hope you're good|hope all is well}}}}. I {{{{specialize in|work in}}}} AI automation and {{{{wanted to know|was just wondering}}}} if you've {{{{started using|taken advantage of}}}} any of the {{{{amazing things|cool stuff}}}} that AI {{{{can do|was built for}}}}.
+
+{{{{In a nutshell|Put simply}}}}, we can {{{{automate|use AI to automate}}}} {{{{just about anything|pretty much anything}}}} {{{{you can imagine|your business needs|you or your team do}}}} - {{{{lead gen|lead generation|getting leads}}}}, {{{{closing deals|your sales cycle|making sales}}}}, customer {{{{support|service}}}}, {{{{appointment booking|scheduling}}}}, {{{{follow-ups|follow up sequences}}}}, you name it.
+
+It's all {{{{hands-off|totally automated|completely hands-free}}}} once we {{{{set it up|get it running}}}}.
+
+If {{{{you're interested|that sounds good|you want more info}}}}, let's {{{{schedule|get on|set up}}}} a quick {{{{call|meeting|Zoom call}}}} and I {{{{will show you everything|can show you how it works|will show you the magic}}}}. If not, {{{{all good|no problem|no worries}}}}.
 """
 
-        system_prompt_initial = """
-You are writing a cold email. The user prompt contains special spintext formatting that you MUST process correctly.
+            system_prompt_initial = """
+You are writing an email based on information in a csv. If the organization_short_description and industry fields are empty, then create a response from the spintext in the user prompt + the available data. Follow the spintext guide below.
 
 SPINTEXT PROCESSING GUIDE:
-Spintext appears as {{option1|option2|option3}} with curly brackets and options separated by vertical bars. This is NOT part of the email text - it's instructions for you to create variations. Here's exactly how to handle it:
 
-1. IDENTIFY: Look for any text wrapped in double curly brackets {{ }}
-2. EXTRACT: Find all options separated by vertical bars |
-3. CHOOSE: Randomly select ONE option from each bracket group
-4. REPLACE: Write the chosen option naturally in the email, removing ALL brackets and bars
-5. VARY: Make different random choices each time you see spintext
+Spintext appears as {{option1|option2|option3}} with curly brackets and options separated by vertical bars. Here's an example of how it works:
 
-EXAMPLE PROCESSING:
+EXAMPLE SPINTEXT PROCESSING:
 Input: "If {{you're interested|that sounds good|you want more info}}, let's {{schedule|get on|set up}} a quick {{call|meeting|Zoom call}}"
 
 Possible outputs:
 - "If you're interested, let's schedule a quick call"
-- "If that sounds good, let's get on a meeting" 
+- "If that sounds good, let's get on a meeting"
 - "If you want more info, let's set up a quick Zoom call"
 
 CRITICAL RULES:
-- NEVER write {{ }} brackets in your response
-- NEVER write | vertical bars in your response  
-- ALWAYS pick ONE option from each group
-- ALWAYS make random selections to create variety
-- The spintext creates natural language variations
-
-Process ALL spintext in the user prompt this way. Write personalized emails using the contact information provided.
+- For each {{option1|option2|option3}} group, flip a mental coin and pick option 1, 2, or 3 based PURELY on random chance
+- You have NO MEMORY of previous emails - treat each spintext choice as if you're seeing it for the first time
+- Do NOT pick options based on what sounds better, more natural, or more professional - ONLY randomness
+- Each spintext selection must be independent random chance - like rolling dice for every single choice
 """
+        
+        # DEBUG: Write to file since prints aren't showing
+        debug_file = f"uploads/debug_row_{row_index}.txt"
+        with open(debug_file, "w") as f:
+            f.write(f"=== ROW {row_index} DEBUG ===\n")
+            f.write(f"org_desc: '{org_desc}' (pd.notna: {pd.notna(org_desc)}, stripped: '{org_desc.strip() if org_desc else 'None'}')\n")
+            f.write(f"industry: '{industry}' (pd.notna: {pd.notna(industry)}, stripped: '{industry.strip() if industry else 'None'}')\n")
+            f.write(f"Industry condition: {pd.notna(industry) and industry.strip() and industry.lower() != 'your industry'}\n")
+            f.write(f"Using template: {not (pd.notna(industry) and industry.strip() and industry.lower() != 'your industry')}\n")
+            f.write(f"FULL USER PROMPT:\n{user_prompt_initial}\n")
+            f.write(f"FULL SYSTEM PROMPT:\n{system_prompt_initial}\n")
+            f.write("=" * 50)
         
         rate_limited_api_call()
         
@@ -198,7 +790,7 @@ Process ALL spintext in the user prompt this way. Write personalized emails usin
                 {"role": "system", "content": system_prompt_initial},
                 {"role": "user", "content": user_prompt_initial}
             ],
-            temperature=0.8,
+            temperature=0.9,
             max_tokens=200,
         )
         initial_email = completion_initial.choices[0].message.content.strip()
@@ -216,8 +808,8 @@ Hey {first_name}, just {{thought I'd|wanted to}} {{send|shoot}} over {{some|a bi
 Then give specific information on how our ai solutions can help. Here is a spintext example of how that would look:
 
 – {{Custom AI chatbots|GPT-based automation|AI assistant creation}} - {company_name}'s {{knowledge base|unique knowledge}} {{fed to|wrapped in}} an {{AI|OpenAI}} chat interface
-– {{Lead reactivation|Database follow-ups|Old lead outreach}} - {{AI-generated|AI-based}} {{text|SMS}} messages, {{designed|made}} to {{book appointments|make appointments}}
-– {{Sales process automation|Automated follow-ups and scheduling|Automated lead generation}} - automate your entire {{lead|sales|selling}} cycle from {{"who?"|cold}} to {{"I'll take it"|ready to buy}}
+– {{Lead reactivation|Database follow-ups|Old lead outreach}} - {{AI-generated|AI-based}} {{text|SMS}} messages, {{designed|made}} to {{re-engage customers|bring back clients}}
+– {{Sales process automation|Automated follow-ups|Lead generation automation}} - automate your entire {{lead|sales|selling}} cycle from {{"who?"|cold}} to {{"I'll take it"|ready to buy}}
 
 End all emails with a spun version of this:
 
@@ -225,11 +817,27 @@ If {{you're interested|that sounds good|you want more info}}, let's {{schedule|g
 """
         
         system_prompt_followup1 = """
-Write a follow-up email using the spintext format shown. 
+You are writing a follow-up email. The user prompt contains special spintext formatting that you MUST process correctly.
 
-CRITICAL: When you see {{option1|option2|option3}} anywhere in the user prompt, you MUST replace it with ONE randomly chosen option. Do NOT include the {{}} brackets in your response. The brackets are instructions for you, not part of the email text.
+SPINTEXT PROCESSING GUIDE:
+Spintext appears as {{option1|option2|option3}} with curly brackets and options separated by vertical bars. This is NOT part of the email text - it's instructions for you to create variations. Here's exactly how to handle it:
 
-Do not add any extra closings or signatures beyond what the user prompt specifies.
+1. IDENTIFY: Look for any text wrapped in double curly brackets {{ }}
+2. EXTRACT: Find all options separated by vertical bars |
+3. CHOOSE: Randomly select ONE option from each bracket group
+4. REPLACE: Write the chosen option naturally in the email, removing ALL brackets and bars
+5. VARY: Make different random choices each time you see spintext
+
+CRITICAL RULES:
+- NEVER write {{ }} brackets in your response
+- NEVER write | vertical bars in your response  
+- ALWAYS pick ONE option from each group
+- ALWAYS make random selections to create variety
+- The spintext creates natural language variations
+
+WRITING LEVEL: Write at a 5th grade reading level. Use simple words and short sentences. Avoid complex vocabulary.
+
+Process ALL spintext in the user prompt this way. Write the follow-up email using the contact information provided.
 """
         
         rate_limited_api_call()
@@ -267,7 +875,7 @@ End with: "If not, all good!" or "If not, no problem!"
                 {"role": "system", "content": "You are writing a final follow-up email. Follow the exact format provided. Add humor and personality. NO signatures. SPAM WORD RESTRICTIONS - NEVER use: 100% free, make money, earn extra cash, guaranteed, million dollars, free gift, financial freedom, risk-free, incredible deal, once in a lifetime, act now, click here, get it now, urgent, limited time, order now, while supplies last, do it today, take action, don't delete, no catch, no hidden fees, no credit check, meet singles, multi-level marketing, social security number, weight loss, this isn't spam, unsolicited, hidden charges, cheap, bonus, cash, discount, pre-approved, clearance, bargain, income, loans, rates."},
                 {"role": "user", "content": user_prompt_followup2}
             ],
-            temperature=0.8,
+            temperature=0.9,
             max_tokens=300,
         )
         followup_2_email = completion_followup2.choices[0].message.content.strip()
@@ -295,139 +903,7 @@ End with: "If not, all good!" or "If not, no problem!"
             "model_used": "none"
         }
 
-@celery_app.task(bind=True, max_retries=5, ignore_result=False)
-def process_single_email(self, row_data, row_index, job_id):
-    """Celery task version - uses same prompts as direct function for consistency"""
-    try:
-        print(f"🔥 CELERY TASK: Processing row {row_index} (Celery version)")
-        
-        # Clean all data
-        cleaned_data = {k: clean_data(v) for k, v in row_data.items()}
-        
-        prospect_info = '\n'.join([f"{k}: {v}" for k, v in cleaned_data.items() if v])
-        first_name = cleaned_data.get('first_name') or cleaned_data.get('name', 'there')
-        
-        user_prompt = f"""
-Write a natural, conversational cold email using this contact information:
----
-{prospect_info}
----
-Write like you're a real person reaching out - natural, authentic, non-promotional tone.
-Key guidelines:
-- Start casually: "Hey {first_name}", "Hi {first_name}", "{first_name}, hope you're well"
-- Mention you work with AI automation in a casual way.
-- Reference their specific situation when possible.
-- Keep it conversational and authentic.
-- End with EXACTLY these words: "If you're open to a chat, let me know - if not, all good." Use this exact phrase, no variations.
-- Use proper spacing with blank lines between paragraphs for readability.
-- NO signatures, names, or formal closings.
-- 50-70 words max.
-Make each email sound completely different - vary greetings, structure, tone, and phrasing naturally.
-"""
-        
-        system_prompt = """
-You are writing a cold email. Write ONLY the email body text with NO subject line, NO signatures, NO names, NO formal closings.
-Write FROM a person who works in "AI automation" TO that prospect.
-Follow all formatting rules. Be confident and direct. Avoid spam trigger words.
-CRITICAL: Do not include "Subject:", "Best,", "Cheers,", "[Your Name]", or any signatures.
-MANDATORY: End with EXACTLY these words: "If you're open to a chat, let me know - if not, all good." No variations allowed.
-"""
-        
-        rate_limited_api_call()
-        model = model_assigner.get_worker_model()
-        
-        completion = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.8,
-            max_tokens=200,
-        )
-        
-        email_content = completion.choices[0].message.content.strip()
-        email_content = nuclear_clean_email(email_content)
-        
-        return {
-            "index": row_index,
-            "row_data": row_data,
-            "email": email_content,
-            "status": "success",
-            "model_used": model
-        }
-        
-    except Exception as e:
-        print(f"ERROR processing row {row_index}: {str(e)}")
-        return {
-            "index": row_index,
-            "row_data": row_data,
-            "email": f"ERROR: {str(e)[:200]}",
-            "status": "error",
-            "model_used": "none"
-        }
 
-def process_single_email_direct(row_data, row_index, job_id):
-    """Direct function call version - no Celery decorators to avoid .get() deadlock"""
-    try:
-        print(f"⚡ DIRECT CALL: Processing row {row_index} (Direct version)")
-        # Clean all data
-        cleaned_data = {k: clean_data(v) for k, v in row_data.items()}
-        
-        prospect_info = '\n'.join([f"{k}: {v}" for k, v in cleaned_data.items() if v])
-        first_name = cleaned_data.get('first_name') or cleaned_data.get('name', 'there')
-        
-        user_prompt = f"""
-Write a personalized cold email using this contact information:
----
-{prospect_info}
----
-
-Start with "Hey [first_name]," and mention you work with AI automation. Reference their company and/or industry specifically. Keep it conversational and authentic. End with "If you're open to a chat, let me know - if not, all good."
-
-NO signatures, names, or formal closings. 50-80 words max.
-"""
-        
-        system_prompt = """
-You are writing a personalized cold email. Write ONLY the email body text with NO subject line, NO signatures, NO names, NO formal closings.
-Be specific about their company/industry. Be conversational and direct.
-CRITICAL: Do not include "Subject:", "Best,", "Cheers,", "[Your Name]", or any signatures.
-MANDATORY: End with EXACTLY "If you're open to a chat, let me know - if not, all good."
-"""
-        
-        rate_limited_api_call()
-        model = model_assigner.get_worker_model()
-        
-        completion = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.8,
-            max_tokens=200,
-        )
-        
-        email_text = completion.choices[0].message.content.strip()
-        
-        # Clean up any subject lines or signatures that might slip through
-        email_text = nuclear_clean_email(email_text)
-        
-        return {
-            "index": row_index,
-            "row_data": row_data,
-            "email": email_text,
-            "status": "success",
-            "model_used": model
-        }
-        
-    except Exception as e:
-        return {
-            "index": row_index,
-            "row_data": row_data,
-            "email": f"ERROR: {str(e)}",
-            "status": "error"
-        }
 
 @celery_app.task(bind=True, max_retries=3, ignore_result=False)
 def process_spreadsheet_task(self, file_path, job_id, mode="single"):
@@ -448,10 +924,8 @@ def process_spreadsheet_task(self, file_path, job_id, mode="single"):
             try:
                 row_data = row.to_dict()
                 
-                if mode == "sequence":
-                    result = generate_email_sequence_for_row_direct(row_data, index, job_id)
-                else:
-                    result = process_single_email_direct(row_data, index, job_id)
+                # Always use the sequence function - it has the proper template logic
+                result = generate_email_sequence_for_row_direct(row_data, index, job_id)
                 
                 results.append(result)
                 
@@ -480,7 +954,8 @@ def process_spreadsheet_task(self, file_path, job_id, mode="single"):
                     flattened_row["followup_1"] = result.get("followup_1", "")  
                     flattened_row["followup_2"] = result.get("followup_2", "")
                 else:
-                    flattened_row["generated_email"] = result.get("email", "")
+                    # For single mode, just use the initial email from the sequence
+                    flattened_row["generated_email"] = result.get("initial_email", "")
                 
                 flattened_row["status"] = result.get("status", "")
                 flattened_row["model_used"] = result.get("model_used", "")
