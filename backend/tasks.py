@@ -364,6 +364,10 @@ def generate_email_sequence_for_row_direct(row_data, row_index, job_id):
                 "pain_points": ["member engagement tracking", "class scheduling", "equipment maintenance", "progress monitoring"],
                 "solutions": ["Member engagement analytics", "Class scheduling automation", "Equipment maintenance tracking", "Fitness progress AI", "AI lead generation for fitness members", "Sales automation for membership sales", "Customer service chatbots for fitness questions"]
             },
+            "healthcare": {
+                "pain_points": ["patient scheduling", "medical record management", "staff scheduling", "insurance processing"],
+                "solutions": ["Patient scheduling automation", "Medical record AI", "Healthcare staff scheduling", "Insurance processing automation", "AI lead generation for patient acquisition", "Sales automation for healthcare services", "Customer service chatbots for patient inquiries"]
+            },
             "higher_education": {
                 "pain_points": ["student enrollment management", "course scheduling", "academic performance tracking", "research coordination"],
                 "solutions": ["Enrollment management AI", "Course scheduling automation", "Academic analytics", "Research coordination systems", "AI lead generation for student recruitment", "Sales automation for program enrollment", "Customer service chatbots for student services"]
