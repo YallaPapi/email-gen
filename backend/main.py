@@ -6,19 +6,19 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from celery.result import AsyncResult
-from tasks import process_spreadsheet_task, celery_app, update_status
+from tasks_simple import process_spreadsheet_task, celery_app
 import redis
 import pandas as pd
 
 Path("./uploads").mkdir(exist_ok=True)
 app = FastAPI()
 
-# Add CORS middleware
+# Add CORS middleware - Firefox compatible
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost", "http://127.0.0.1"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
 )
 
@@ -43,7 +43,7 @@ def initialize_job_status_db():
                 
                 # Try to read CSV/Excel to get original filename
                 original_filename = "Unknown"
-                mode = "single"
+                mode = "sequence"
                 total_rows = 0
                 
                 try:
@@ -101,19 +101,77 @@ def initialize_job_status_db():
 # Initialize on startup
 initialize_job_status_db()
 
-@app.get("/")
+@app.get("/", response_class=FileResponse)
+@app.head("/")
 async def serve_frontend():
-    """Return the actual index.html file"""
-    try:
-        html_path = "/app/index.html"
-        if not os.path.exists(html_path):
-            html_path = "index.html"
-        return FileResponse(html_path, media_type="text/html")
-    except Exception as e:
-        return HTMLResponse(f"<h1>Error loading index.html: {str(e)}</h1><p>Current directory: {os.getcwd()}</p><p>Files: {os.listdir('.')}</p>", status_code=500)
+    """Return index.html file using FileResponse for Firefox compatibility"""
+    file_path = "index.html"
+    if os.path.exists(file_path):
+        response = FileResponse(file_path, media_type="text/html")
+        # Add Firefox-specific security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+    else:
+        raise HTTPException(status_code=404, detail=f"index.html not found in {os.getcwd()}")
+
+@app.get("/index.html", response_class=FileResponse)
+@app.head("/index.html") 
+async def serve_frontend_direct():
+    """Return index.html file for direct requests"""
+    return await serve_frontend()
+
+@app.get("/favicon.ico")
+@app.head("/favicon.ico")
+async def favicon():
+    """Return empty favicon to prevent 404 errors"""
+    from fastapi.responses import Response
+    return Response(content="", media_type="image/x-icon", status_code=204)
+
+@app.get("/test", response_class=HTMLResponse)
+async def test_firefox():
+    """Simple test route for Firefox debugging"""
+    html_content = """<!DOCTYPE html>
+    <html>
+    <head>
+        <title>Firefox Test</title>
+        <meta charset="UTF-8">
+        <link rel="icon" href="data:,">
+    </head>
+    <body>
+        <h1>Firefox Test Page</h1>
+        <p>If you can see this, Firefox is working with the server.</p>
+        <p>Current URL: <span id="url"></span></p>
+        <p>User Agent: <span id="ua"></span></p>
+        <script>
+            document.getElementById('url').textContent = window.location.href;
+            document.getElementById('ua').textContent = navigator.userAgent;
+            console.log('Firefox test page loaded successfully');
+        </script>
+    </body>
+    </html>"""
+    response = HTMLResponse(content=html_content)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
+
+@app.get("/simple", response_class=HTMLResponse)
+async def simple_test():
+    """Ultra-simple test page"""
+    return HTMLResponse("""<!DOCTYPE html>
+<html>
+<head><title>Simple Test</title></head>
+<body>
+<h1>This is a simple test page</h1>
+<p>If you can see this, the server is working.</p>
+</body>
+</html>""")
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...), mode: str = Form("single")):
+async def upload_file(file: UploadFile = File(...)):
     allowed_extensions = {".csv", ".xlsx", ".xls"}
     file_ext = Path(file.filename).suffix.lower()
     if file_ext not in allowed_extensions:
@@ -138,14 +196,14 @@ async def upload_file(file: UploadFile = File(...), mode: str = Form("single")):
             while chunk := file.file.read(8192):
                 f.write(chunk)
         
-        task = process_spreadsheet_task.delay(file_location, job_id, mode)
+        task = process_spreadsheet_task.delay(file_location, job_id, "sequence")
         job_status_db[job_id] = {
             "status": "QUEUED", 
             "progress": 0, 
             "total": 0, 
             "result_file": None,
             "original_filename": file.filename,
-            "mode": mode
+            "mode": "sequence"
         }
         return {"job_id": job_id, "status": "QUEUED"}
     except Exception as e:
@@ -229,7 +287,7 @@ async def get_all_jobs():
                 "progress": job_data.get("progress", 0),
                 "total": job_data.get("total", 0),
                 "original_filename": job_data.get("original_filename", "Unknown"),
-                "mode": job_data.get("mode", "single"),
+                "mode": job_data.get("mode", "sequence"),
                 "has_result": has_result,
                 "download_url": f"/download/{job_id}" if has_result else None,
                 "upload_time": upload_time

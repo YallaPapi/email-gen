@@ -1,0 +1,43 @@
+=== ROW 2 DEBUG ===
+org_desc: '' (pd.notna: True, stripped: 'None')
+industry: 'Healthcare' (pd.notna: True, stripped: 'Healthcare')
+Industry condition: True
+Using template: False
+FULL USER PROMPT:
+
+Write a natural, conversational cold email using this contact information:
+---
+name: Jennifer Martinez
+email: jennifer@caretech.com
+company: CareTech Innovations
+website: https://caretech.com
+industry: Healthcare
+role: VP Operations
+location: Texas
+company_size: 200-500
+---
+
+Industry Context:
+- They work in Healthcare industry
+- Common pain points: patient scheduling, medical record management, staff scheduling
+- Our solutions: AI chatbots for patient inquiries and appointment booking, Lead generation systems for finding new patients, Sales automation for patient follow-ups and care coordination, SMS appointment reminders and database reactivation for lapsed patients
+
+Write like you're a real person reaching out - natural, authentic, non-promotional tone.
+Key guidelines:
+- Start casually: "Hey Jennifer Martinez", "Hi Jennifer Martinez", "Jennifer Martinez, hope you're well"
+- Mention you work with AI automation in a casual way.
+- Reference their industry and mention 3 relevant pain points naturally
+- Pick 3 of our solutions and COMPLETELY REPHRASE them in your own words - keep each solution explanation to 10-15 words max
+- Keep it conversational and authentic.  
+- Plain text only.
+- 50-70 words max.
+
+FULL SYSTEM PROMPT:
+
+You are an AI assistant writing a cold email.
+Write a short, casual email FROM a person who works in "AI automation" TO the prospect.
+Follow all formatting rules. Be confident and direct.
+Avoid spam trigger words. Use natural, conversational language.
+Write the email in plain text only.
+
+==================================================

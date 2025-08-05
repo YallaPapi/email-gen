@@ -34,7 +34,7 @@ services:
     depends_on:
       - redis
       - backend
-    command: celery -A tasks worker --hostname=worker1@%h --concurrency=1 --loglevel=info
+    command: celery -A tasks_simple worker --hostname=worker1@%h --concurrency=1 --loglevel=info
 
   # Worker 2 - gpt-3.5-turbo-0125
   worker2:
@@ -49,7 +49,7 @@ services:
     depends_on:
       - redis
       - backend
-    command: celery -A tasks worker --hostname=worker2@%h --concurrency=1 --loglevel=info
+    command: celery -A tasks_simple worker --hostname=worker2@%h --concurrency=1 --loglevel=info
 
   # Worker 3 - gpt-3.5-turbo-1106
   worker3:
@@ -58,14 +58,13 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./backend:/app
-      - ./backend:/app
     environment:
       - REDIS_URL=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - redis
       - backend
-    command: celery -A tasks worker --hostname=worker3@%h --concurrency=1 --loglevel=info
+    command: celery -A tasks_simple worker --hostname=worker3@%h --concurrency=1 --loglevel=info
 
   # Worker 4 - gpt-3.5-turbo-16k
   worker4:
@@ -74,14 +73,13 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./backend:/app
-      - ./backend:/app
     environment:
       - REDIS_URL=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - redis
       - backend
-    command: celery -A tasks worker --hostname=worker4@%h --concurrency=1 --loglevel=info
+    command: celery -A tasks_simple worker --hostname=worker4@%h --concurrency=1 --loglevel=info
 
   # Optional: Flower for monitoring (access at http://localhost:5555)
   flower:
@@ -95,4 +93,4 @@ services:
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       - redis
-    command: celery -A tasks flower --broker=redis://redis:6379/0
+    command: celery -A tasks_simple flower --broker=redis://redis:6379/0

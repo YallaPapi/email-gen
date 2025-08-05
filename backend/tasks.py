@@ -25,86 +25,92 @@ def clean_data(value):
         return ''
     return str(value).strip()
 
+
 def nuclear_clean_email(email_text):
-    """NUCLEAR CLEANING - REMOVE EVERYTHING UNWANTED WITH REGEX"""
+    """ULTIMATE NUCLEAR CLEANING - BULLETPROOF CONTENT REMOVAL"""
     import re
     
-    # Step 1: Remove subject lines completely (any line starting with subject)
-    email_text = re.sub(r'^Subject:.*?\n', '', email_text, flags=re.MULTILINE | re.IGNORECASE)
-    email_text = re.sub(r'^subject:.*?\n', '', email_text, flags=re.MULTILINE | re.IGNORECASE)
+    text = str(email_text).strip()
     
-    # Step 2: Split into lines and find greeting start
-    lines = email_text.split('\n')
-    start_index = 0
+    # STEP 1: ELIMINATE ALL HIGH UNICODE (EMOJIS) - NUCLEAR APPROACH
+    # Remove ALL characters that could be emojis using comprehensive ranges
+    import unicodedata
+    # Keep only basic printable ASCII, space, newline, tab, carriage return
+    allowed_chars = set(range(32, 127))  # printable ASCII
+    allowed_chars.update([9, 10, 13])    # tab, newline, carriage return
     
-    for i, line in enumerate(lines):
-        line_clean = line.strip()
-        if line_clean.startswith(('Hey ', 'Hi ', 'Hello ')):
-            start_index = i
-            break
+    text = ''.join(char for char in text if ord(char) in allowed_chars)
     
-    # Take only from greeting onwards
-    lines = lines[start_index:]
-    
-    # Step 3: Remove signature patterns aggressively (including isolated words)
-    signature_patterns = [
-        r'^\s*Cheers!?\s*,?',
-        r'^\s*Best!?\s*,?', 
-        r'^\s*Thanks!?\s*,?',
-        r'^\s*Regards?\s*,?',
-        r'^\s*Sincerely\s*,?',
-        r'^\s*\[Your Name\]\s*,?',
-        r'^\s*\[.*\]\s*,?',
-        r'^\s*Yours truly\s*,?',
-        r'^\s*Warm regards\s*,?',
-        r'^\s*Warm\s*$',  # Isolated "Warm" word
-        r'^\s*Best\s*$',   # Isolated "Best" word  
-        r'^\s*Cheers\s*$', # Isolated "Cheers" word
-        r'^\s*Thanks\s*$'  # Isolated "Thanks" word
+    # STEP 2: BRUTAL PHRASE ELIMINATION - Case insensitive
+    death_phrases = [
+        'Take care!', 'Take care,', 'Take care', 'take care!', 'take care,', 'take care', 'TAKE CARE',
+        'Let me know if you have any questions', 'Let me know if you', 'let me know if you have any questions', 
+        'let me know if you', 'let me know if', 'LET ME KNOW IF',
+        'Feel free to reach out', 'Feel free to contact', 'feel free to reach out', 'feel free to contact',
+        'feel free to', 'FEEL FREE TO',
+        'Have a great day', 'Have a wonderful day', 'have a great day', 'have a wonderful day',
+        'Looking forward to hearing from you', 'looking forward to hearing from you',
+        'Best,', 'best,', 'BEST,', 'Cheers,', 'cheers,', 'CHEERS,',
+        'Thanks,', 'thanks,', 'THANKS,', 'Regards,', 'regards,', 'REGARDS,',
+        'Best regards', 'best regards', 'BEST REGARDS', 'Best regards.', 'best regards.', 'BEST REGARDS.',
+        'Best regards,', 'best regards,', 'BEST REGARDS,', 'Sincerely,', 'sincerely,', 'SINCERELY,',
+        'Sincerely', 'sincerely', 'SINCERELY', '[Your Name]', '[your name]', '[YOUR NAME]'
     ]
     
-    # Filter out signature lines
-    filtered_lines = []
+    for phrase in death_phrases:
+        text = text.replace(phrase, '')
+    
+    # STEP 3: Find greeting and remove everything before
+    lines = text.split('\n')
+    start_idx = 0
+    for i, line in enumerate(lines):
+        if re.match(r'^\s*(Hey|Hi|Hello)\s+', line.strip(), re.IGNORECASE):
+            start_idx = i
+            break
+    lines = lines[start_idx:]
+    
+    # STEP 4: LINE-BY-LINE DESTRUCTION
+    clean_lines = []
     for line in lines:
-        is_signature = False
-        for pattern in signature_patterns:
-            if re.match(pattern, line, re.IGNORECASE):
-                is_signature = True
+        stripped = line.strip()
+        
+        # KILL signature lines entirely
+        signature_kill_patterns = [
+            r'^(Take care|Best|Cheers|Thanks|Regards|Sincerely)[,!\s]*$',
+            r'^[A-Z][a-z]+\s*$',  # Kill single names like "John", "Alex"
+            r'AI Automation',
+            r'^(Best|Cheers|Thanks|Regards)$'
+        ]
+        
+        should_kill = False
+        for pattern in signature_kill_patterns:
+            if re.search(pattern, stripped, re.IGNORECASE):
+                should_kill = True
                 break
-        if not is_signature:
-            filtered_lines.append(line)
+        
+        if should_kill:
+            continue  # KILL this line entirely
+            
+        # Additional phrase removal from line content
+        for phrase in death_phrases:
+            line = line.replace(phrase, '')
+        
+        # Only keep lines with actual content
+        if line.strip():
+            clean_lines.append(line)
     
-    # Step 4: Remove trailing empty lines and signature remnants (including isolated words)
-    signature_words = ['cheers', 'best', 'thanks', 'regards', 'warm', 'sincerely']
-    while (filtered_lines and 
-           (not filtered_lines[-1].strip() or 
-            filtered_lines[-1].strip().lower() in signature_words)):
-        filtered_lines.pop()
+    # STEP 5: FINAL ASSEMBLY AND CLEANUP
+    result = '\n'.join(clean_lines)
+    result = re.sub(r'\n\s*\n+', '\n\n', result)  # Clean up spacing
     
-    # Step 5: Join and aggressive final cleanup
-    result = '\n'.join(filtered_lines)
+    # STEP 6: FINAL DEATH PASS - Kill anything that survived
+    for phrase in death_phrases:
+        result = result.replace(phrase, '')
     
-    # Nuclear regex cleanup - remove any remaining unwanted patterns (including isolated words)
-    result = re.sub(r'Subject:.*?\n', '', result, flags=re.IGNORECASE)
-    result = re.sub(r'Cheers!?[,\s]*$', '', result, flags=re.MULTILINE | re.IGNORECASE)
-    result = re.sub(r'Best!?[,\s]*$', '', result, flags=re.MULTILINE | re.IGNORECASE)
-    result = re.sub(r'Thanks!?[,\s]*$', '', result, flags=re.MULTILINE | re.IGNORECASE)
-    result = re.sub(r'Regards[,\s]*$', '', result, flags=re.MULTILINE | re.IGNORECASE)
-    result = re.sub(r'Warm[,\s]*$', '', result, flags=re.MULTILINE | re.IGNORECASE)  # Remove isolated "Warm"
-    result = re.sub(r'\[Your Name\][,\s]*', '', result, flags=re.MULTILINE | re.IGNORECASE)
-    result = re.sub(r'\[.*\][,\s]*', '', result, flags=re.MULTILINE | re.IGNORECASE)
+    # Remove any remaining high Unicode
+    result = ''.join(char for char in result if ord(char) < 256)
     
-    # Additional cleanup for isolated signature words at line endings
-    result = re.sub(r'\n\s*Warm\s*$', '', result, flags=re.IGNORECASE)
-    result = re.sub(r'\n\s*Best\s*$', '', result, flags=re.IGNORECASE)
-    result = re.sub(r'\n\s*Cheers\s*$', '', result, flags=re.IGNORECASE)
-    result = re.sub(r'\n\s*Thanks\s*$', '', result, flags=re.IGNORECASE)
-    
-    # Clean up multiple newlines and trailing whitespace
-    result = re.sub(r'\n\s*\n', '\n\n', result)
-    result = result.strip()
-    
-    return result
+    return result.strip()
 
 def update_status(job_id, status, progress, total):
     """Update job status to file and Redis"""
@@ -135,10 +141,7 @@ def generate_email_sequence_for_row_direct(row_data, row_index, job_id):
         
         # Handle industry
         industry_raw = cleaned_data.get('industry', '')
-        if pd.isna(industry_raw) or industry_raw == '' or str(industry_raw).lower() in ['nan', 'none', 'null']:
-            industry = 'your industry'
-        else:
-            industry = str(industry_raw).strip()
+        industry = industry_raw if pd.notna(industry_raw) and str(industry_raw).strip() not in ['', 'nan', 'none', 'null'] else 'your industry'
         
         model = model_assigner.get_worker_model()
         
@@ -308,13 +311,21 @@ def generate_email_sequence_for_row_direct(row_data, row_index, job_id):
                 "pain_points": ["maintenance scheduling", "space utilization", "vendor coordination", "cost optimization"],
                 "solutions": ["Maintenance scheduling AI", "Space utilization analytics", "Vendor coordination automation", "Cost optimization algorithms", "AI lead generation for facilities clients", "Sales automation for service contracts", "Customer service chatbots for facility requests"]
             },
+            "manufacturing": {
+                "pain_points": ["production line inefficiencies", "quality control issues", "supply chain disruptions", "equipment downtime"],
+                "solutions": ["AI chatbots for technical support and order inquiries", "Lead generation systems for finding new manufacturing clients", "Sales automation for quoting and order management", "SMS appointment booking for equipment maintenance and consultations"]
+            },
+            "technology": {
+                "pain_points": ["system scalability issues", "data security concerns", "software integration challenges", "technical debt management"],
+                "solutions": ["AI chatbots for customer support and tech inquiries", "Lead generation systems for finding enterprise clients", "Sales automation for software demos and trials", "SMS database reactivation for re-engaging past clients"]
+            },
             "farming": {
                 "pain_points": ["crop yield optimization", "weather monitoring", "equipment maintenance", "market price tracking"],
                 "solutions": ["Crop optimization AI", "Weather prediction systems", "Equipment maintenance automation", "Market price monitoring", "AI lead generation for agricultural buyers", "Sales automation for crop sales", "Customer service chatbots for farming inquiries"]
             },
             "financial_services": {
                 "pain_points": ["client onboarding delays", "risk assessment", "portfolio management", "regulatory compliance"],
-                "solutions": ["Client onboarding automation", "AI risk assessment", "Portfolio management systems", "Compliance tracking automation", "AI lead generation for financial clients", "Sales automation for financial products", "Customer service chatbots for account inquiries"]
+                "solutions": ["AI chatbots for client inquiries and account support", "Lead generation systems for finding high-value prospects", "Sales automation for appointment scheduling and follow-ups", "SMS database reactivation for re-engaging dormant clients"]
             },
             "fine_art": {
                 "pain_points": ["artwork cataloging", "auction management", "authentication verification", "client relationship management"],
@@ -366,7 +377,7 @@ def generate_email_sequence_for_row_direct(row_data, row_index, job_id):
             },
             "healthcare": {
                 "pain_points": ["patient scheduling", "medical record management", "staff scheduling", "insurance processing"],
-                "solutions": ["Patient scheduling automation", "Medical record AI", "Healthcare staff scheduling", "Insurance processing automation", "AI lead generation for patient acquisition", "Sales automation for healthcare services", "Customer service chatbots for patient inquiries"]
+                "solutions": ["AI chatbots for patient inquiries and appointment booking", "Lead generation systems for finding new patients", "Sales automation for patient follow-ups and care coordination", "SMS appointment reminders and database reactivation for lapsed patients"]
             },
             "higher_education": {
                 "pain_points": ["student enrollment management", "course scheduling", "academic performance tracking", "research coordination"],
@@ -710,33 +721,47 @@ def generate_email_sequence_for_row_direct(row_data, row_index, job_id):
             }
         }
         
-        # Default guidance for industries not in our list
-        default_guidance = {
-            "pain_points": ["manual processes taking too much time", "difficulty tracking leads and customers", "inconsistent follow-up with prospects"],
-            "solutions": ["Process automation that handles repetitive tasks", "CRM automation that tracks all interactions", "Follow-up automation that never misses a lead", "AI lead generation systems", "Sales automation workflows", "Customer service chatbots"]
-        }
-        
         if pd.notna(industry) and industry.strip() and industry.lower() != 'your industry':
-            # Industry-specific personalized content
-            guidance = industry_guidance.get(industry.lower().replace(' ', '_').replace('&', 'and'), default_guidance)
+            # Industry-specific personalized content - NO FALLBACKS
+            guidance = industry_guidance.get(industry.lower().replace(' ', '_').replace('&', 'and'))
+            if not guidance:
+                raise ValueError(f"Industry '{industry}' not found in guidance dictionary. Industry-specific content required.")
             pain_points = ", ".join(guidance["pain_points"][:3])
             solutions = guidance["solutions"]
             
-            system_prompt_initial = f"""
-Write a cold email to this prospect in the {industry} industry.
+            system_prompt_initial = """
+Write exactly this format:
 
-Most common pain points are: {pain_points}.
+1. Start with: "Hey [name],"
+2. Write 50-70 words about AI automation solutions for their industry  
+3. End with one direct question asking if they want to discuss it
+4. Use only standard letters, numbers, spaces, and punctuation marks
+5. Write complete sentences in professional business tone
 
-Here is a list of their most common AI solutions: {", ".join(solutions)}.
-
-Pick 3 at random, rephrase them in your own words, and suggest them as possible solutions. Be conversational.
-
-At the end of each email, tell them: "If this sounds good, let's get on a call. If not, all good."
+Example structure:
+Hey [name], [industry context]. [solution description]. [specific benefit]. [direct question]?
 """
             
             user_prompt_initial = f"""
-Contact: {first_name} at {company_name}
-Industry: {industry}
+Write a natural, conversational cold email using this contact information:
+---
+{prospect_info}
+---
+
+Industry Context:
+- They work in {industry} industry
+- Common pain points: {pain_points}
+- Our solutions: {', '.join(solutions)}
+
+Write like you're a real person reaching out - natural, authentic, non-promotional tone.
+Key guidelines:
+- Start casually: "Hey {first_name}", "Hi {first_name}", "{first_name}, hope you're well"
+- Mention you work with AI automation in a casual way.
+- Reference their industry and mention 3 relevant pain points naturally
+- Pick 3 of our solutions and COMPLETELY REPHRASE them in your own words - keep each solution explanation to 10-15 words max
+- Keep it conversational and authentic.  
+- Plain text only.
+- 50-70 words max.
 """
         else:
             # Use template format for unknown industries
@@ -753,137 +778,129 @@ If {{{{you're interested|that sounds good|you want more info}}}}, let's {{{{sche
 """
 
             system_prompt_initial = """
-You are writing an email based on information in a csv. If the organization_short_description and industry fields are empty, then create a response from the spintext in the user prompt + the available data. Follow the spintext guide below.
+Process the spintext template:
 
-SPINTEXT PROCESSING GUIDE:
-
-Spintext appears as {{option1|option2|option3}} with curly brackets and options separated by vertical bars. Here's an example of how it works:
-
-EXAMPLE SPINTEXT PROCESSING:
-Input: "If {{you're interested|that sounds good|you want more info}}, let's {{schedule|get on|set up}} a quick {{call|meeting|Zoom call}}"
-
-Possible outputs:
-- "If you're interested, let's schedule a quick call"
-- "If that sounds good, let's get on a meeting"
-- "If you want more info, let's set up a quick Zoom call"
-
-CRITICAL RULES:
-- For each {{option1|option2|option3}} group, flip a mental coin and pick option 1, 2, or 3 based PURELY on random chance
-- You have NO MEMORY of previous emails - treat each spintext choice as if you're seeing it for the first time
-- Do NOT pick options based on what sounds better, more natural, or more professional - ONLY randomness
-- Each spintext selection must be independent random chance - like rolling dice for every single choice
+1. Replace each {{option1|option2|option3}} with one random choice
+2. End with one direct question 
+3. Use only standard letters, numbers, spaces, and punctuation marks
+4. Write complete sentences in conversational business tone
 """
         
-        # DEBUG: Write to file since prints aren't showing
-        debug_file = f"uploads/debug_row_{row_index}.txt"
-        with open(debug_file, "w") as f:
-            f.write(f"=== ROW {row_index} DEBUG ===\n")
-            f.write(f"org_desc: '{org_desc}' (pd.notna: {pd.notna(org_desc)}, stripped: '{org_desc.strip() if org_desc else 'None'}')\n")
-            f.write(f"industry: '{industry}' (pd.notna: {pd.notna(industry)}, stripped: '{industry.strip() if industry else 'None'}')\n")
-            f.write(f"Industry condition: {pd.notna(industry) and industry.strip() and industry.lower() != 'your industry'}\n")
-            f.write(f"Using template: {not (pd.notna(industry) and industry.strip() and industry.lower() != 'your industry')}\n")
-            f.write(f"FULL USER PROMPT:\n{user_prompt_initial}\n")
-            f.write(f"FULL SYSTEM PROMPT:\n{system_prompt_initial}\n")
-            f.write("=" * 50)
         
         rate_limited_api_call()
         
+        # Generate initial email - SIMPLIFIED
         completion_initial = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt_initial},
                 {"role": "user", "content": user_prompt_initial}
             ],
-            temperature=0.9,
+            temperature=0.0,
             max_tokens=200,
         )
         initial_email = completion_initial.choices[0].message.content.strip()
+        # Single clean pass
         initial_email = nuclear_clean_email(initial_email)
         
-        # STEP 2: Generate follow-up 1 - USER'S EXACT PROMPT
-        user_prompt_followup1 = f"""
-Company: {company_name}
-Contact: {first_name}
-
-Tell the client you just wanted to send over a bit more info about how we can help. For example, it may look something like this:
-
-Hey {first_name}, just {{thought I'd|wanted to}} {{send|shoot}} over {{some|a bit}} more {{info|information}} on {{how we work|how we can help you|what we can do to help you}} over at {company_name}.
-
-Then give specific information on how our ai solutions can help. Here is a spintext example of how that would look:
-
-– {{Custom AI chatbots|GPT-based automation|AI assistant creation}} - {company_name}'s {{knowledge base|unique knowledge}} {{fed to|wrapped in}} an {{AI|OpenAI}} chat interface
-– {{Lead reactivation|Database follow-ups|Old lead outreach}} - {{AI-generated|AI-based}} {{text|SMS}} messages, {{designed|made}} to {{re-engage customers|bring back clients}}
-– {{Sales process automation|Automated follow-ups|Lead generation automation}} - automate your entire {{lead|sales|selling}} cycle from {{"who?"|cold}} to {{"I'll take it"|ready to buy}}
-
-End all emails with a spun version of this:
-
-If {{you're interested|that sounds good|you want more info}}, let's {{schedule|get on|set up}} a quick {{call|meeting|Zoom call}} and I {{will show you everything|can show you how it works|will show you the magic}}. If not, {{all good|no problem|no worries}}.
-"""
+        # STEP 2: Generate follow-up 1 - PURE PROMPT-BASED APPROACH
+        
+        # Always use industry-specific approach - NO FALLBACKS
+        guidance = industry_guidance.get(industry.lower().replace(' ', '_').replace('&', 'and'))
+        if not guidance:
+            raise ValueError(f"Industry '{industry}' not found in guidance dictionary. Industry-specific content required.")
+        pain_points = ", ".join(guidance["pain_points"][:3])
+        solutions = guidance["solutions"]
         
         system_prompt_followup1 = """
-You are writing a follow-up email. The user prompt contains special spintext formatting that you MUST process correctly.
+Write exactly this format:
 
-SPINTEXT PROCESSING GUIDE:
-Spintext appears as {{option1|option2|option3}} with curly brackets and options separated by vertical bars. This is NOT part of the email text - it's instructions for you to create variations. Here's exactly how to handle it:
+1. Start with: "Hey [name],"  
+2. Write 60-75 words following up on AI automation solutions
+3. End with one direct question about their interest
+4. Use only standard letters, numbers, spaces, and punctuation marks
+5. Write complete sentences in professional business tone
 
-1. IDENTIFY: Look for any text wrapped in double curly brackets {{ }}
-2. EXTRACT: Find all options separated by vertical bars |
-3. CHOOSE: Randomly select ONE option from each bracket group
-4. REPLACE: Write the chosen option naturally in the email, removing ALL brackets and bars
-5. VARY: Make different random choices each time you see spintext
+Example structure:
+Hey [name], [follow-up context]. [solution reminder]. [value proposition]. [direct question]?
+"""
+        
+        user_prompt_followup1 = f"""
+Write a natural, conversational follow-up email using this contact information:
+---
+Contact: {first_name} at {company_name}
+Industry: {industry}
+---
 
-CRITICAL RULES:
-- NEVER write {{ }} brackets in your response
-- NEVER write | vertical bars in your response  
-- ALWAYS pick ONE option from each group
-- ALWAYS make random selections to create variety
-- The spintext creates natural language variations
+Industry Context:
+- They work in {industry} industry
+- Common pain points: {pain_points}
+- Our solutions: {', '.join(solutions)}
 
-WRITING LEVEL: Write at a 5th grade reading level. Use simple words and short sentences. Avoid complex vocabulary.
-
-Process ALL spintext in the user prompt this way. Write the follow-up email using the contact information provided.
+This is a follow-up to an unanswered cold email - DO NOT imply previous conversation.
+Write like you're a real person reaching out - natural, authentic, non-promotional tone.
+Key guidelines:
+- Start casually with the prospect's name
+- Mention you work with AI automation in a casual way
+- Pick 3 of our solutions and COMPLETELY REPHRASE them in your own words - use different terminology, angles, and value propositions
+- Keep it conversational and authentic
+- Plain text only
+- 60-75 words max
 """
         
         rate_limited_api_call()
         
+        # Generate follow-up 1 - SIMPLIFIED
         completion_followup1 = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt_followup1},
                 {"role": "user", "content": user_prompt_followup1}
             ],
-            temperature=0.7,
+            temperature=0.0,
             max_tokens=200,
         )
         followup_1_email = completion_followup1.choices[0].message.content.strip()
+        # Single clean pass
         followup_1_email = nuclear_clean_email(followup_1_email)
         
-        # STEP 3: Generate follow-up 2 - ORIGINAL WORKING PROMPT
+        # STEP 3: Generate follow-up 2 - SIMPLIFIED
+        system_prompt_followup2 = """
+Write exactly this format:
+
+1. Start with: "Hey [name],"
+2. Write 50-70 words about wrapping up outreach respectfully
+3. End with one direct statement about respecting their time
+4. Use only standard letters, numbers, spaces, and punctuation marks
+5. Write complete sentences in professional business tone
+
+Example structure:
+Hey [name], [acknowledgment of their busy schedule]. [respectful closing statement].
+"""
+        
         user_prompt_followup2 = f"""
-Write a final follow-up email to {first_name} at {company_name}.
+Contact: {first_name} at {company_name}
+Industry: {industry}
 
-Start with: "{first_name}, one more try?"
-
-Say you'll assume they're not interested if you don't hear back and will leave them alone. Add some humor like "you probably deserve a break from the grind."
-
-End with: "If not, all good!" or "If not, no problem!"
-
-50-70 words. NO signatures.
+Write a final follow-up email acknowledging they are likely busy. State you will respect their time and stop contacting them unless they reach out.
 """
         
         rate_limited_api_call()
         
+        # Generate follow-up 2 - SIMPLIFIED
         completion_followup2 = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": "You are writing a final follow-up email. Follow the exact format provided. Add humor and personality. NO signatures. SPAM WORD RESTRICTIONS - NEVER use: 100% free, make money, earn extra cash, guaranteed, million dollars, free gift, financial freedom, risk-free, incredible deal, once in a lifetime, act now, click here, get it now, urgent, limited time, order now, while supplies last, do it today, take action, don't delete, no catch, no hidden fees, no credit check, meet singles, multi-level marketing, social security number, weight loss, this isn't spam, unsolicited, hidden charges, cheap, bonus, cash, discount, pre-approved, clearance, bargain, income, loans, rates."},
+                {"role": "system", "content": system_prompt_followup2},
                 {"role": "user", "content": user_prompt_followup2}
             ],
-            temperature=0.9,
+            temperature=0.0,
             max_tokens=300,
         )
         followup_2_email = completion_followup2.choices[0].message.content.strip()
+        # DOUBLE NUCLEAR CLEANING for followup_2 - The most problematic email
         followup_2_email = nuclear_clean_email(followup_2_email)
+        followup_2_email = nuclear_clean_email(followup_2_email)  # Clean twice for safety
         
         return {
             "index": row_index,
@@ -910,7 +927,7 @@ End with: "If not, all good!" or "If not, no problem!"
 
 
 @celery_app.task(bind=True, max_retries=3, ignore_result=False)
-def process_spreadsheet_task(self, file_path, job_id, mode="single"):
+def process_spreadsheet_task(self, file_path, job_id, mode="sequence"):
     """Main task for processing spreadsheet"""
     try:
         if file_path.endswith('.csv'):
@@ -953,13 +970,9 @@ def process_spreadsheet_task(self, file_path, job_id, mode="single"):
                 flattened_row = result["row_data"].copy()
                 
                 # Add the email columns and metadata
-                if mode == "sequence":
-                    flattened_row["initial_email"] = result.get("initial_email", "")
-                    flattened_row["followup_1"] = result.get("followup_1", "")  
-                    flattened_row["followup_2"] = result.get("followup_2", "")
-                else:
-                    # For single mode, just use the initial email from the sequence
-                    flattened_row["generated_email"] = result.get("initial_email", "")
+                flattened_row["initial_email"] = result.get("initial_email", "")
+                flattened_row["followup_1"] = result.get("followup_1", "")  
+                flattened_row["followup_2"] = result.get("followup_2", "")
                 
                 flattened_row["status"] = result.get("status", "")
                 flattened_row["model_used"] = result.get("model_used", "")

@@ -1,0 +1,7 @@
+=== FOLLOW-UP DEBUG ROW 0 ===
+industry: 'Healthcare'
+pd.notna(industry): True
+industry.strip(): 'Healthcare'
+industry.lower() != 'your industry': True
+Full condition result: True
+==================================================
