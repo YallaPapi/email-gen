@@ -5,20 +5,18 @@ class WorkerModelAssigner:
     """Assigns a specific OpenAI model to each worker based on worker ID/hostname"""
     
     def __init__(self):
-        # Map worker names/IDs to specific models
+        # Use only gpt-3.5-turbo for maximum cost savings
+        # This is the cheapest and fastest model in the GPT-3.5 family
         self.model_assignments = {
             "worker1": "gpt-3.5-turbo",
-            "worker2": "gpt-3.5-turbo-0125", 
-            "worker3": "gpt-3.5-turbo-1106",
-            "worker4": "gpt-3.5-turbo-16k"
+            "worker2": "gpt-3.5-turbo", 
+            "worker3": "gpt-3.5-turbo",
+            "worker4": "gpt-3.5-turbo"
         }
         
-        # Default models list for round-robin if worker not in assignments
+        # Default to cheapest model for all workers
         self.models = [
-            "gpt-3.5-turbo",
-            "gpt-3.5-turbo-0125",
-            "gpt-3.5-turbo-1106",
-            "gpt-3.5-turbo-16k"
+            "gpt-3.5-turbo"  # $0.0015 per 1K tokens (cheapest option)
         ]
     
     def get_worker_model(self):

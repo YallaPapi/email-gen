@@ -44,79 +44,95 @@ def generate_rewrite_instructions(seed_value):
     instruction_type = random.randint(0, 3)
     
     if instruction_type == 0:
-        # Tone and structure variations
-        return f"""Rewrite this email with these requirements:
-- {random.choice(['Casual', 'Friendly', 'Conversational', 'Relaxed', 'Professional but warm'])} tone
-- {random.choice(['Start with a question', 'Open with just their name', 'Begin with an observation', 'Start by mentioning their company'])}
-- Present the 3 solutions as {random.choice(['bullets', 'numbered list', 'short sentences', 'one flowing paragraph'])}
-- End with: "{random.choice([
-    'Interested? Let\'s chat. If not, no worries.',
-    'Worth a quick call? All good if not.',
-    'Want to explore this? No pressure if not.',
-    'Sound useful? Happy to explain more. Otherwise, no problem.',
-    'Make sense? Can show you how it works. Or not - totally fine.',
-    'If this resonates, quick call? If not, all good.',
-    'Let me know if interested. No worries if not.',
-    'Worth discussing? Your call - no pressure.',
-    'Sound helpful? Chat soon? Or not - totally fine.'
-])}"
-Keep it under {random.choice(['80', '90', '100'])} words."""
+        # Slight variations on standard format
+        return f"""Rewrite this email keeping the same professional structure but change:
+- Opening: {random.choice([
+    'Hi [name], I noticed [company]...',
+    'Hey [name], saw that [company]...',
+    '[Name], I see [company] is in...',
+    'Hi [name], [company] being in [industry]...'
+])}
+- Introduce problems: {random.choice([
+    'probably deals with...',
+    'likely faces challenges like...',
+    'might struggle with...',
+    'probably encounters...'
+])}
+- List 3 AI solutions clearly as {random.choice(['bullets (•)', 'dashes (-)', 'numbers (1,2,3)'])}
+- Closing: {random.choice([
+    'Interested in learning more? Let\'s chat. If not, no worries!',
+    'Want to explore how this could help? Quick call? If not, all good.',
+    'Sound useful? Happy to discuss. Otherwise, no problem!',
+    'Think this could help? Let me know. If not, totally fine!'
+])}"""
 
     elif instruction_type == 1:
-        # Direct and punchy variations
-        return f"""Make this email {random.choice(['shorter and punchier', 'more direct', 'super brief', 'straight to the point'])}:
-- {random.choice(['Lead with the value', 'Start with what you do', 'Open with their problem', 'Begin with your solution'])}
-- 3 solutions in {random.choice(['one-liners', 'brief phrases', '5-7 words each', 'super short bullets'])}
-- {random.choice(['Remove all fluff', 'Cut unnecessary words', 'Be extremely concise', 'Eliminate filler'])}
-- Close with: "{random.choice([
-    'Interested? = call. Not? = all good.',
-    'Yes = we talk. No = no problem.',
-    'Worth exploring? Let me know either way.',
-    'Make sense? Quick chat or pass?',
-    'Sound good? Up to you.',
-    'Want this? Let\'s connect. Don\'t? No worries.'
-])}"
-Maximum {random.choice(['60', '70', '80'])} words total."""
+        # Slightly more direct version
+        return f"""Rewrite more directly but keep professional:
+- Opening: {random.choice([
+    '[Name], quick question - [company] probably deals with...',
+    'Hi [name], [company] in [industry] likely faces...',
+    '[Name] - Know [company] struggles with...'
+])}
+- List the problems briefly, then say "We help with:"
+- 3 AI solutions as {random.choice(['short bullets', 'quick points', 'brief list'])}:
+  • Keep each solution under 10 words
+  • Be specific to their industry
+  • One must be lead gen or chatbots
+- Closing: {random.choice([
+    'Worth a quick chat? Let me know.',
+    'Interested? Happy to show you how. If not, no worries.',
+    'Make sense? Quick call this week?',
+    'Sound helpful? Let\'s connect. Or not - your call.'
+])}"""
 
     elif instruction_type == 2:
-        # Story/example approach
-        return f"""Rewrite as a {random.choice(['story/example', 'case study mention', 'results-focused', 'problem-solution'])} format:
-- {random.choice([
-    'Mention helping another company in their industry',
-    'Reference industry challenges you solve',
-    'Lead with what you\'ve done for similar businesses',
-    'Start with common problems they face'
+        # Helpful/consultative approach
+        return f"""Rewrite with helpful tone but same structure:
+- Opening: {random.choice([
+    'Hi [name], I work with [industry] companies like [company]...',
+    'Hey [name], helping [industry] businesses like [company]...',
+    '[Name], I noticed [company] is in [industry]. We help similar companies...'
 ])}
-- Present 3 AI solutions {random.choice(['as a formula', 'as what worked before', 'inline in the story', 'as the solution set'])}
-- {random.choice(['Conversational', 'Natural', 'Friendly', 'Personable'])} tone throughout
-- End: "{random.choice([
-    'Could do the same for you. Interested?',
-    'Think this could help? Let me know.',
-    'Worth trying for your company? Your call.',
-    'Sound relevant? Happy to discuss. Or not - all good.',
-    'Make sense for you? Quick call?'
-])}"
-Keep it {random.choice(['concise', 'brief', 'short'])} - under {random.choice(['90', '100'])} words."""
+- Mention problems: "Most face challenges with [list 2-3 problems]"
+- Transition: {random.choice([
+    'Our AI solutions help with:',
+    'We address these with:',
+    'Here\'s how AI can help:'
+])}
+- List 3 solutions as {random.choice(['bullets', 'dashes', 'numbers'])}
+- Closing: {random.choice([
+    'Happy to share how this works for others in [industry]. Interested?',
+    'Can show you what we\'ve done for similar companies. Worth discussing?',
+    'Would love to explore if this fits [company]. Quick chat?',
+    'Let me know if you\'d like to learn more. No pressure!'
+])}"""
 
     else:
-        # Natural conversational variations
-        return f"""Rewrite to sound {random.choice(['more natural', 'like a real person', 'genuinely helpful', 'authentic and human'])}:
-- {random.choice([
-    'Acknowledge their industry challenges casually',
-    'Mention what they probably deal with daily',
-    'Reference their business realities',
-    'Show you understand their world'
+        # Natural but professional
+        return f"""Rewrite naturally but keep it professional:
+- Opening: {random.choice([
+    'Hi [name], saw [company] works in [industry]...',
+    'Hey [name], I noticed [company] is a [industry] business...',
+    '[Name], looking at [company], I imagine you deal with...'
 ])}
-- Work in the 3 AI solutions {random.choice(['conversationally', 'naturally', 'as helpful suggestions', 'as possibilities']}
-- {random.choice(['Add personality', 'Be more human', 'Sound less robotic', 'Make it personable'])}
-- Natural ending: "{random.choice([
-    'If any of this helps, let\'s talk. Otherwise, all good!',
-    'Could be useful? Happy to chat. Or not - your call.',
-    'Think this might work? Quick call? No stress if not.',
-    'Might be worth exploring? Let me know. Or don\'t - totally fine.',
-    'Sound interesting? We could connect. Not interested? Honestly no problem.'
-])}"
-Aim for {random.choice(['80-100', '70-90', '60-80'])} words."""
+- Problems section: {random.choice([
+    'I imagine you face [list problems]',
+    'You probably deal with [list problems]',
+    'Common challenges I see: [list problems]'
+])}
+- Solutions intro: {random.choice([
+    'We\'ve built AI tools that help:',
+    'Our AI solutions address these:',
+    'Here\'s what we offer:'
+])}
+- List 3 solutions clearly
+- Closing: {random.choice([
+    'If this sounds useful, let\'s chat. If not, no worries at all!',
+    'Interested? Love to show you. Not interested? Totally understand.',
+    'Want to learn more? Happy to explain. Otherwise, all good!',
+    'Think this could help [company]? Let me know either way.'
+])}"""
 
 @celery_app.task(bind=True, max_retries=5)
 def process_single_email(self, row_data, row_index, job_id):
@@ -145,17 +161,15 @@ def process_single_email(self, row_data, row_index, job_id):
         random.seed(hash_seed)
         base_system_prompt = f"""You are writing a cold email to someone in the {industry} industry.
 
-TASK: Think about what specific problems the {industry} industry faces. Then provide exactly 3 AI-powered solutions.
+Write a professional but friendly email that:
+1. Opens with Hi [name] and mentions their company
+2. States that companies in {industry} often deal with [2-3 specific problems]
+3. Says "We help with:" and lists exactly 3 AI solutions:
+   - ONE must be "AI lead generation" or "customer service chatbots"
+   - The other 2 must be specific to {industry} problems
+4. Ends with a soft CTA like "Interested? Let's chat. If not, no worries!"
 
-REQUIREMENTS:
-1. Identify real problems {industry} businesses face
-2. Offer exactly 3 AI solutions
-3. ONE must be either "AI lead generation" or "customer service chatbots"
-4. The other 2 should be highly specific to {industry} problems
-5. Don't use generic business language - be specific to their industry
-
-Write a {random.choice(['brief', 'short', 'concise'])} email ({random.choice(['60-80', '70-90', '80-100'])} words).
-{random.choice(['Be conversational.', 'Keep it casual.', 'Sound natural.', 'Be friendly.']}"""
+Keep it 80-100 words. Be specific to {industry}, not generic."""
 
         base_user_prompt = f"""Write a cold email to:
 Name: {first_name}
@@ -176,7 +190,7 @@ Include 3 specific AI solutions - one must be lead generation or chatbots, the o
                     {"role": "user", "content": base_user_prompt}
                 ],
                 temperature=0.8,
-                max_tokens=150,
+                max_tokens=120,  # Reduced from 150 to save costs
             )
             base_email = completion1.choices[0].message.content.strip()
         except Exception as api_error:
@@ -221,7 +235,7 @@ Rewrite this email following these instructions exactly."""
                     {"role": "user", "content": rewrite_user_prompt}
                 ],
                 temperature=0.9,  # Higher temperature for more variation
-                max_tokens=150,
+                max_tokens=120,  # Reduced from 150 to save costs
             )
             final_email = completion2.choices[0].message.content.strip()
         except Exception as api_error:
