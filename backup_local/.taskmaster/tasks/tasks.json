@@ -1,0 +1,23 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Design Comprehensive FastAPI CSV Upload Testing Strategy",
+        "description": "Develop a robust and thorough testing strategy for CSV upload endpoints in a FastAPI application, ensuring correctness, security, and resilience.",
+        "details": "1. **Test Coverage**: Define test cases for valid and invalid CSV uploads, including edge cases (e.g., empty files, malformed CSV, large files, missing headers, incorrect data types).\n\n2. **Testing Tools**: Use `pytest` with `httpx.AsyncClient` for asynchronous endpoint testing. Employ `pytest-asyncio` for async test support. Consider using `pytest-mock` or `unittest.mock` for mocking file I/O and database interactions.\n\n3. **Test Types**:\n- *Unit tests*: Validate CSV parsing logic, file validation, and error handling in isolation.\n- *Integration tests*: Simulate full upload requests to the FastAPI endpoint, verifying end-to-end behavior, including file storage and database insertion.\n- *Security tests*: Check for vulnerabilities such as path traversal, file type spoofing, and denial-of-service with large files.\n- *Performance tests*: Measure upload throughput and response times for large or concurrent uploads.\n\n4. **Fixtures and Test Data**: Create reusable fixtures for sample CSV files (valid and invalid), temporary upload directories, and mock database connections.\n\n5. **Validation**: Ensure tests assert correct HTTP status codes, error messages, and data persistence. Use parameterized tests to cover multiple scenarios efficiently.\n\n6. **CI Integration**: Integrate tests into the CI pipeline to ensure all CSV upload features are automatically verified on each commit.\n\n7. **Documentation**: Document the testing approach, coverage, and how to run tests locally and in CI environments.\n\nExample integration test snippet:\n```python\nimport pytest\nfrom httpx import AsyncClient\n\n@pytest.mark.asyncio\nasync def test_upload_valid_csv(async_client: AsyncClient):\n    files = {'file': ('test.csv', b'header1,header2\\nval1,val2', 'text/csv')}\n    response = await async_client.post('/upload/single', files=files)\n    assert response.status_code == 200\n    assert response.json()['filename'] == 'test.csv'\n```\n",
+        "testStrategy": "- Run all unit and integration tests using pytest, ensuring 100% coverage of CSV upload logic and endpoints.\n- Verify that uploads of valid CSV files succeed and data is correctly processed or stored.\n- Confirm that invalid or malicious files are rejected with appropriate error responses.\n- Test edge cases (empty, malformed, oversized files) and assert correct handling.\n- Use static analysis and security scanning tools to check for vulnerabilities in file handling.\n- Review CI pipeline logs to ensure tests run and pass automatically on each commit.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-01T23:20:00Z",
+      "updated": "2025-08-01T03:20:32.671Z",
+      "version": "1.0.0",
+      "description": "Tasks for master context"
+    }
+  }
+}

@@ -1,0 +1,141 @@
+Please set OPENAI_API_KEY environment variable
+
+Showing mock examples of what would be generated:
+
+============================================================
+DYNAMIC INDUSTRY EMAIL GENERATION - NO HARDCODED DICTIONARY
+============================================================
+
+### TEST 1: 5 DIFFERENT INDUSTRIES ###
+
+Email #1 - Law Practice
+To: John at Smith & Associates
+----------------------------------------
+Hi John,
+
+Running Smith & Associates, you're probably drowning in document review and billable hour tracking.
+
+Our AI platform helps law firms automate:
+
+• Contract analysis AI that flags key terms and risks instantly
+• Automated time tracking that captures billable work without manual entry
+• Client lead generation through AI-targeted campaigns
+
+If you're interested in exploring any of these, let's set up a quick call. If not, no worries!
+
+
+Email #2 - Healthcare
+To: Sarah at Regional Medical Center
+----------------------------------------
+Hey Sarah,
+
+I noticed Regional Medical Center is in healthcare. Patient scheduling and insurance claims probably eat up a lot of your team's time.
+
+We help healthcare organizations like yours with AI automation:
+
+• Intelligent patient intake that auto-schedules and verifies insurance
+• AI-powered medical record search that finds patient history in seconds
+• Lead generation for new patient acquisition through targeted outreach
+
+If you're interested in exploring any of these, let's set up a quick call. If not, no worries!
+
+
+Email #3 - Manufacturing
+To: Mike at TechManufacturing Co
+----------------------------------------
+Hi Mike,
+
+TechManufacturing Co being in manufacturing, I imagine production scheduling and quality control are constant challenges.
+
+Our AI helps manufacturers with:
+
+• Predictive maintenance AI that prevents equipment failures
+• Quality control automation using computer vision
+• B2B lead generation for new contracts and partnerships
+
+If you're interested in exploring any of these, let's set up a quick call. If not, no worries!
+
+
+Email #4 - Real Estate
+To: Lisa at Prime Realty Group
+----------------------------------------
+Hey Lisa,
+
+I work with real estate companies, and I know Prime Realty Group probably deals with endless property inquiries and lead qualification.
+
+We've built AI solutions specifically for real estate:
+
+• Smart property matching that connects buyers to listings automatically
+• Virtual showing scheduler with AI follow-ups
+• Lead generation chatbots that qualify buyers 24/7
+
+If you're interested in exploring any of these, let's set up a quick call. If not, no worries!
+
+
+Email #5 - Food Service
+To: David at FreshBite Restaurants
+----------------------------------------
+Hey David,
+
+I noticed FreshBite Restaurants operates in Food Service. Like most Food Service companies, you're probably looking to streamline operations.
+
+We specialize in AI automation for Food Service:
+
+• Process automation tailored to Food Service workflows
+• Customer service chatbots trained on Food Service knowledge
+• Smart analytics for Food Service-specific metrics
+
+If you're interested in exploring any of these, let's set up a quick call. If not, no worries!
+
+
+
+### TEST 2: SAME INDUSTRY (HEALTHCARE) - 3 VARIATIONS ###
+
+Healthcare Variation #1
+To: Emily at Valley Medical
+----------------------------------------
+Hey Emily,
+
+I noticed Valley Medical is in healthcare. Patient scheduling and insurance claims probably eat up a lot of your team's time.
+
+We help healthcare organizations like yours with AI automation:
+
+• Intelligent patient intake that auto-schedules and verifies insurance
+• AI-powered medical record search that finds patient history in seconds
+• Lead generation for new patient acquisition through targeted outreach
+
+If you're interested in exploring any of these, let's set up a quick call. If not, no worries!
+
+
+Healthcare Variation #2
+To: Robert at CareFirst Clinics
+----------------------------------------
+Hey Robert,
+
+I noticed CareFirst Clinics is in healthcare. Patient scheduling and insurance claims probably eat up a lot of your team's time.
+
+We help healthcare organizations like yours with AI automation:
+
+• Intelligent patient intake that auto-schedules and verifies insurance
+• AI-powered medical record search that finds patient history in seconds
+• Lead generation for new patient acquisition through targeted outreach
+
+If you're interested in exploring any of these, let's set up a quick call. If not, no worries!
+
+
+Healthcare Variation #3
+To: Jennifer at Metro Health System
+----------------------------------------
+Hey Jennifer,
+
+I noticed Metro Health System is in healthcare. Patient scheduling and insurance claims probably eat up a lot of your team's time.
+
+We help healthcare organizations like yours with AI automation:
+
+• Intelligent patient intake that auto-schedules and verifies insurance
+• AI-powered medical record search that finds patient history in seconds
+• Lead generation for new patient acquisition through targeted outreach
+
+If you're interested in exploring any of these, let's set up a quick call. If not, no worries!
+
+

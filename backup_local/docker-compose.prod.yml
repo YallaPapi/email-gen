@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+      
+  backend:
+    image: yourusername/email-gen-backend:latest
+    restart: always
+    ports:
+      - "80:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./frontend:/app/frontend
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - redis
+      
+  worker:
+    image: yourusername/email-gen-worker:latest
+    restart: always
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - redis
+    deploy:
+      replicas: 10
+
+volumes:
+  redis_data:
